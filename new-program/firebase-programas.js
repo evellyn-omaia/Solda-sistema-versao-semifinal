@@ -33,6 +33,48 @@ function esperarUsuarioLogado() {
   });
 }
 
+// A sessão é apenas um cache: o vínculo autorizado vem do cadastro no Firebase.
+async function obterEmpresaId(usuario) {
+  if (!usuario?.uid || auth.currentUser?.uid !== usuario.uid) {
+    throw new Error("Usuário não está logado.");
+  }
+
+  const empresaIdSessao = sessionStorage.getItem("empresaId");
+  const snapshotUsuario = await get(ref(db, `usuarios/${usuario.uid}`));
+
+  if (!snapshotUsuario.exists()) {
+    sessionStorage.removeItem("empresaId");
+    throw new Error("Dados do usuário não encontrados.");
+  }
+
+  const empresaIdCadastro = snapshotUsuario.val()?.empresaId;
+  if (
+    typeof empresaIdCadastro !== "string" ||
+    !empresaIdCadastro.trim() ||
+    /[.#$/[\]\u0000-\u001f\u007f]/.test(empresaIdCadastro)
+  ) {
+    sessionStorage.removeItem("empresaId");
+    throw new Error("Empresa do usuário não identificada no cadastro.");
+  }
+
+  const empresaId = empresaIdSessao === empresaIdCadastro
+    ? empresaIdSessao
+    : empresaIdCadastro;
+  const snapshotEmpresa = await get(ref(db, `empresas/${empresaId}`));
+
+  // A autenticação pode mudar enquanto as consultas estão em andamento.
+  if (auth.currentUser?.uid !== usuario.uid) {
+    throw new Error("Usuário autenticado mudou. Tente novamente.");
+  }
+  if (!snapshotEmpresa.exists()) {
+    sessionStorage.removeItem("empresaId");
+    throw new Error("Empresa do usuário não encontrada.");
+  }
+
+  sessionStorage.setItem("empresaId", empresaId);
+  return empresaId;
+}
+
 /* ==========================
 INICIAR PAUSA
 ========================== */
@@ -331,11 +373,7 @@ SALVAR PROGRAMA
 window.salvarProgramaFirebase = async function (nome, programa) {
   const usuario = await esperarUsuarioLogado();
 
-  const empresaId = sessionStorage.getItem("empresaId");
-
-  if (!empresaId) {
-    throw new Error("Empresa do usuário não identificada.");
-  }
+  const empresaId = await obterEmpresaId(usuario);
 
   const nomeSeguro = nome.trim().replace(/[.#$/[\]]/g, "-");
 
@@ -851,11 +889,7 @@ PRODUÇÃO ATUAL
 window.salvarProducaoAtualFirebase = async function (dados) {
   const usuario = await esperarUsuarioLogado();
 
-  const empresaId = sessionStorage.getItem("empresaId");
-
-  if (!empresaId) {
-    throw new Error("empresaId não encontrado na sessão.");
-  }
+  const empresaId = await obterEmpresaId(usuario);
 
   const operadorNome =
     sessionStorage.getItem("nomeUsuario") ||
@@ -904,11 +938,7 @@ BUSCAR PRODUÇÃO ATUAL
 window.buscarProducaoAtualFirebase = async function () {
   const usuario = await esperarUsuarioLogado();
 
-  const empresaId = sessionStorage.getItem("empresaId");
-
-  if (!empresaId) {
-    throw new Error("empresaId não encontrado na sessão.");
-  }
+  const empresaId = await obterEmpresaId(usuario);
 
   /*
   Primeiro tenta buscar na
@@ -938,9 +968,9 @@ window.buscarProducaoAtualFirebase = async function () {
 };
 
 async function validarOperadorParaConsultaAdmin(operadorUid) {
-  await esperarUsuarioLogado();
+  const usuario = await esperarUsuarioLogado();
 
-  const empresaId = sessionStorage.getItem("empresaId");
+  const empresaId = await obterEmpresaId(usuario);
   const tipoUsuario = sessionStorage.getItem("tipoUsuario");
   const uid = String(operadorUid || "").trim();
 
@@ -1204,11 +1234,7 @@ EM TEMPO REAL
 window.observarProducaoAtualFirebase = async function (callback) {
   const usuario = await esperarUsuarioLogado();
 
-  const empresaId = sessionStorage.getItem("empresaId");
-
-  if (!empresaId) {
-    throw new Error("empresaId não encontrado na sessão.");
-  }
+  const empresaId = await obterEmpresaId(usuario);
 
   /*
   Observa a nova estrutura

@@ -4020,3 +4020,63 @@ observadorResizeCena3D?.observe(renderer.domElement);
 window.addEventListener("pagehide", () => {
   observadorResizeCena3D?.disconnect();
 });
+
+
+window.addEventListener(
+  "soldatech:gesto-visao",
+  async (event) => {
+
+    const gesto = event.detail?.gesto;
+
+    console.log(
+      "👋 [VISÃO] Processando gesto:",
+      gesto,
+      "| Estado:",
+      estadoExecucao
+    );
+
+    if (gesto === "START") {
+
+      if (
+        estadoExecucao !==
+        EstadoExecucao.AGUARDANDO_INICIO
+      ) {
+        console.warn(
+          "⚠️ START por gesto ignorado. Estado atual:",
+          estadoExecucao
+        );
+
+        return;
+      }
+
+      console.log(
+        "▶️ [VISÃO] Iniciando ciclo por gesto."
+      );
+
+      await confirmarInicioCiclo();
+
+      return;
+    }
+
+    if (gesto === "PAUSA") {
+
+      if (
+        estadoExecucao !==
+        EstadoExecucao.EXECUTANDO
+      ) {
+        console.warn(
+          "⚠️ PAUSA por gesto ignorada. Estado atual:",
+          estadoExecucao
+        );
+
+        return;
+      }
+
+      console.log(
+        "⏸️ [VISÃO] Pausando ciclo por gesto."
+      );
+
+      await alternarMovimento();
+    }
+  }
+);
