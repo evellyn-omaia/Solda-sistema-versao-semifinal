@@ -1,0 +1,227 @@
+[
+  {
+    "id": "tabSoldaTech",
+    "type": "tab",
+    "label": "SoldaTech - Ponte MQTT <-> CLP",
+    "disabled": false,
+    "info": "Ponte entre o broker MQTT local (mqtt-broker/, o mesmo que o navegador usa via new-program/mqtt-maquina.js) e o CLP real via Modbus TCP.\n\nAntes de ligar em produção:\n1. Preencha o node \"Conectar ao CLP (on start)\" com o IP/porta/unit id do CLP.\n2. Preencha o mapa de coils/registradores nesse mesmo node conforme o programa do seu CLP.\n3. Instale a dependência modbus-serial (ver README.md desta pasta).\n\nEnquanto isso não for feito, o app continua funcionando normalmente em modo SIMULAÇÃO (o checkbox \"Controlar a máquina real\" na tela de produção fica desligado por padrão)."
+  },
+  {
+    "id": "brokerSoldaTech",
+    "type": "mqtt-broker",
+    "name": "SoldaTech Local",
+    "broker": "localhost",
+    "port": "1883",
+    "clientid": "soldatech-nodered",
+    "autoConnect": true,
+    "usetls": false,
+    "protocolVersion": "4",
+    "keepalive": "30",
+    "cleansession": true,
+    "birthTopic": "",
+    "birthQos": "0",
+    "birthRetain": "false",
+    "birthPayload": "",
+    "birthMsg": {},
+    "closeTopic": "",
+    "closeQos": "0",
+    "closeRetain": "false",
+    "closePayload": "",
+    "closeMsg": {},
+    "willTopic": "",
+    "willQos": "0",
+    "willRetain": "false",
+    "willPayload": "",
+    "willMsg": {},
+    "userProps": "",
+    "sessionExpiry": ""
+  },
+  {
+    "id": "cmtCredenciais",
+    "type": "comment",
+    "z": "tabSoldaTech",
+    "name": "Broker local (mqtt-broker/) - sem nuvem",
+    "info": "Este flow aponta para o broker MQTT local do projeto (pasta mqtt-broker/ na raiz), que roda no mesmo PC do Node-RED, em mqtt://localhost:1883. Não precisa de conta nem senha - é o mesmo broker que o navegador usa (via ws://localhost:8888 em new-program/mqtt-maquina.js).\n\nSe este PC ficar acessível para além da sua rede local (porta exposta na internet), adicione autenticação em mqtt-broker/server.js antes disso - hoje qualquer cliente na rede pode publicar em qualquer tópico, inclusive fingindo ser o CLP.",
+    "x": 160,
+    "y": 60,
+    "wires": []
+  },
+  {
+    "id": "fnConectarModbus",
+    "type": "function",
+    "z": "tabSoldaTech",
+    "name": "Conectar ao CLP (on start) - AJUSTAR",
+    "func": "return msg;",
+    "initialize": "const ModbusRTU = global.get('modbusSerial');\n\nif (!ModbusRTU) {\n    node.error('Modulo modbus-serial nao encontrado em functionGlobalContext. Veja node-red/README.md.');\n    return;\n}\n\n/*\n=====================================\nAJUSTE 1: dados de rede do CLP\n=====================================\n*/\nconst clpConfig = {\n    ip: '10.200.7.254',   // <-- IP do CLP na rede local\n    port: 502,            // porta Modbus TCP (502 e o padrao)\n    unitId: 1,             // endereco/estacao do CLP (slave id)\n};\n\n/*\n=====================================\nAJUSTE 2: mapa de memoria do CLP\n=====================================\n\nEndereços 0-based. Ajuste conforme o\nprograma ladder/estruturado do seu CLP.\nEsses nomes sao usados pelos outros\nnodes desta flow, nao precisa mexer\nem mais nada alem deste mapa.\n*/\nconst clpRegs = {\n    coils: {\n        // %M10/%M11/%M12 adicionados em paralelo com %M1/%M2/%M3\n        // nos Rung0/1/2 do programa do CLP (EcoStruxure Machine Expert Basic).\n        // Regra de enderecamento confirmada empiricamente (forcar %M10 e\n        // escanear Modbus): %Mn = endereco Modbus n, direto, sem deslocamento.\n        jogCima: 10,      // %M10 - em paralelo com %M1 (Rung0 -> Q0.0 sobe)\n        jogBaixo: 11,     // %M11 - em paralelo com %M2 (Rung1 -> Q0.1 desce)\n        mesaStart: 12,    // %M12 - em paralelo com %M3 (Rung2 -> Q0.2 mesa)\n        soldaOn: 3,       // AINDA NAO LIGADO NO CLP (sem rung para Q0.3/LED)\n        emergencia: 4,    // NAO USAR - emergencia e uma ENTRADA (I0.4), nao existe coil pra isso\n    },\n    holdingRegisters: {\n        zAlvoDecimm: 0,        // posicao Z alvo, em decimos de mm (inteiro)\n        mesaAlvoDecigraus: 1,  // angulo alvo da mesa, em decimos de grau\n    },\n    inputRegisters: {\n        zAtualDecimm: 0,       // posicao Z real, em decimos de mm\n        mesaAtualDecigraus: 1, // angulo real da mesa, em decimos de grau\n    },\n    discreteInputs: {\n        // lidos em sequencia a partir do endereco 'executando' (5 bits)\n        executando: 0,\n        mesaPronta: 1,\n        soldaAtiva: 2,\n        emergenciaAtiva: 3,\n        movimentoConcluido: 4,\n    },\n};\n\nglobal.set('clpConfig', clpConfig);\nglobal.set('clpRegs', clpRegs);\nglobal.set('clpEstado', { conectado: false, ultimaTentativa: 0 });\n\nconst client = new ModbusRTU();\nclient.setTimeout(2000);\nglobal.set('clpClient', client);\n\nfunction conectar() {\n    client.connectTCP(clpConfig.ip, { port: clpConfig.port })\n        .then(async () => {\n            client.setID(clpConfig.unitId);\n\n            /*\n            Estado seguro ao conectar: os bits remotos\n            (%M10/%M11/%M12) podem ter ficado LIGADOS de uma\n            sessao anterior (ex.: navegador fechado com a mesa\n            girando) - o CLP mantem o ultimo valor escrito\n            independente do Node-RED estar rodando ou nao.\n            Zera tudo ao conectar, para nunca herdar um estado\n            perigoso.\n            */\n            try {\n                await client.writeCoil(clpRegs.coils.jogCima, false);\n                await client.writeCoil(clpRegs.coils.jogBaixo, false);\n                await client.writeCoil(clpRegs.coils.mesaStart, false);\n                node.log('Estado remoto zerado ao conectar (jogCima/jogBaixo/mesaStart = OFF).');\n            } catch (erroReset) {\n                node.warn('Nao foi possivel zerar o estado remoto ao conectar: ' + erroReset.message);\n            }\n\n            global.set('clpEstado', { conectado: true, ultimaTentativa: Date.now() });\n            node.log('Conectado ao CLP via Modbus TCP em ' + clpConfig.ip + ':' + clpConfig.port);\n        })\n        .catch((erro) => {\n            global.set('clpEstado', { conectado: false, ultimaTentativa: Date.now() });\n            node.warn('Falha ao conectar ao CLP (' + clpConfig.ip + '): ' + erro.message + ' - nova tentativa em 3s.');\n            setTimeout(conectar, 3000);\n        });\n}\n\nclient.on('close', () => {\n    global.set('clpEstado', { conectado: false, ultimaTentativa: Date.now() });\n    node.warn('Conexao Modbus com o CLP caiu. Tentando reconectar...');\n    setTimeout(conectar, 3000);\n});\n\nconectar();\n",
+    "finalize": "const client = global.get('clpClient');\nif (client) {\n    try { client.close(() => {}); } catch (erro) { /* ignorar */ }\n}\n",
+    "outputs": 1,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize_disabled": false,
+    "finalize_disabled": false,
+    "libs": [],
+    "x": 210,
+    "y": 140,
+    "wires": [
+      []
+    ]
+  },
+  {
+    "id": "cmtRegMap",
+    "type": "comment",
+    "z": "tabSoldaTech",
+    "name": "Mapa de registradores fica dentro do node acima",
+    "info": "Todo o mapeamento de coils/registradores do CLP (o que hoje sao só placeholders 0,1,2,3...) está dentro do node de função 'Conectar ao CLP (on start)'. Edite os valores lá conforme o programa real do seu CLP - não precisa mexer nos outros nodes.",
+    "x": 260,
+    "y": 200,
+    "wires": []
+  },
+  {
+    "id": "mqttInComando",
+    "type": "mqtt in",
+    "z": "tabSoldaTech",
+    "name": "soldatech/maquina/comando",
+    "topic": "soldatech/maquina/comando",
+    "qos": "0",
+    "datatype": "json",
+    "broker": "brokerSoldaTech",
+    "nl": false,
+    "rap": true,
+    "inputs": 0,
+    "x": 200,
+    "y": 320,
+    "wires": [
+      [
+        "fnProcessarComando"
+      ]
+    ]
+  },
+  {
+    "id": "fnProcessarComando",
+    "type": "function",
+    "z": "tabSoldaTech",
+    "name": "Rotear comando -> Modbus",
+    "func": "const client = global.get('clpClient');\nconst regs = global.get('clpRegs');\nconst estado = global.get('clpEstado');\nconst corpo = msg.payload || {};\nconst idComando = corpo.idComando || null;\nconst comando = String(corpo.comando || '').toUpperCase();\nconst dados = corpo.dados || {};\n\nfunction respostaOk(extra) {\n    return {\n        topic: 'soldatech/maquina/resposta',\n        payload: Object.assign({ idComando, tipo: 'COMANDO_OK', comando, timestamp: Date.now() }, extra || {}),\n    };\n}\n\nfunction respostaErro(mensagem, codigo) {\n    return {\n        topic: 'soldatech/maquina/erro',\n        payload: { idComando, tipo: 'COMANDO_ERRO', comando, mensagem, codigo: codigo || 'ERRO_CLP', timestamp: Date.now() },\n    };\n}\n\n// PING nao depende do CLP: serve so para testar a ponte MQTT/Node-RED.\nif (comando === 'PING') {\n    node.send([respostaOk({ mensagem: 'pong' }), null]);\n    return;\n}\n\nif (!regs || !client) {\n    node.send([null, respostaErro('Node-RED ainda nao terminou de inicializar a conexao com o CLP.', 'CLP_NAO_INICIALIZADO')]);\n    return;\n}\n\nif (!estado || !estado.conectado) {\n    node.send([null, respostaErro('Node-RED sem conexao Modbus com o CLP no momento.', 'CLP_OFFLINE')]);\n    return;\n}\n\n(async () => {\n    try {\n        switch (comando) {\n            case 'JOG_CIMA':\n                await client.writeCoil(regs.coils.jogBaixo, false);\n                await client.writeCoil(regs.coils.jogCima, true);\n                break;\n\n            case 'JOG_BAIXO':\n                await client.writeCoil(regs.coils.jogCima, false);\n                await client.writeCoil(regs.coils.jogBaixo, true);\n                break;\n\n            case 'JOG_PULSO': {\n                // Pulso com duracao EXATA controlada aqui (nao pelo\n                // tempo de clique no navegador) - usado para calibrar\n                // o deslocamento minimo por toque.\n                const direcaoPulso = String(dados.direcao || '').toUpperCase();\n                const duracaoMs = Math.max(5, Math.min(2000, Number(dados.duracaoMs) || 30));\n                const coilPulso = direcaoPulso === 'CIMA' ? regs.coils.jogCima : regs.coils.jogBaixo;\n\n                if (direcaoPulso !== 'CIMA' && direcaoPulso !== 'BAIXO') {\n                    throw new Error('JOG_PULSO precisa de dados.direcao CIMA ou BAIXO, recebido: ' + direcaoPulso);\n                }\n\n                await client.writeCoil(coilPulso, true);\n                await new Promise((resolve) => setTimeout(resolve, duracaoMs));\n                await client.writeCoil(coilPulso, false);\n                break;\n            }\n\n            case 'JOG_PARAR':\n                await client.writeCoil(regs.coils.jogCima, false);\n                await client.writeCoil(regs.coils.jogBaixo, false);\n                break;\n\n            case 'MESA_START':\n                await client.writeCoil(regs.coils.mesaStart, true);\n                break;\n\n            case 'MESA_STOP':\n                await client.writeCoil(regs.coils.mesaStart, false);\n                break;\n\n            case 'SOLDA_ON':\n                await client.writeCoil(regs.coils.soldaOn, true);\n                break;\n\n            case 'SOLDA_OFF':\n                await client.writeCoil(regs.coils.soldaOn, false);\n                break;\n\n            case 'MOVER_PONTO': {\n                const zMm = Number(dados.zMm);\n\n                if (!Number.isFinite(zMm)) {\n                    throw new Error('Ponto sem zMm valido: ' + JSON.stringify(dados));\n                }\n\n                flow.set('idComandoMovimentoPendente', idComando);\n                await client.writeRegister(regs.holdingRegisters.zAlvoDecimm, Math.round(zMm * 10));\n                \n\n                if (dados.anguloMesaGraus !== undefined) {\n                    node.warn('MOVER_PONTO pediu anguloMesaGraus=' + dados.anguloMesaGraus + ', mas o giro automatico da mesa para um angulo especifico ainda nao esta calibrado/habilitado (falta medir graus por segundo reais e a mesa so gira em 1 sentido no CLP hoje). Nada foi acionado na mesa.');\n                }\n                break;\n            }\n\n            case 'EMERGENCIA':\n                await client.writeCoil(regs.coils.emergencia, true);\n                break;\n\n            default:\n                node.send([null, respostaErro('Comando nao reconhecido pela ponte Node-RED: ' + comando, 'COMANDO_INVALIDO')]);\n                return;\n        }\n\n        // MOVER_PONTO so confirma via PONTO_ATINGIDO, publicado pelo loop de\n        // status quando o CLP sinalizar 'movimentoConcluido' (ver node de status).\n        if (comando !== 'MOVER_PONTO') {\n            node.send([respostaOk(), null]);\n        }\n    } catch (erro) {\n        node.send([null, respostaErro(erro.message, 'ERRO_MODBUS')]);\n    }\n})();\n\nreturn null;\n",
+    "outputs": 2,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 470,
+    "y": 320,
+    "wires": [
+      [
+        "mqttOutResposta"
+      ],
+      [
+        "mqttOutErro"
+      ]
+    ]
+  },
+  {
+    "id": "mqttOutResposta",
+    "type": "mqtt out",
+    "z": "tabSoldaTech",
+    "name": "soldatech/maquina/resposta",
+    "topic": "soldatech/maquina/resposta",
+    "qos": "0",
+    "retain": "false",
+    "respTopic": "",
+    "contentType": "",
+    "userProps": "",
+    "correl": "",
+    "expiry": "",
+    "broker": "brokerSoldaTech",
+    "x": 780,
+    "y": 300,
+    "wires": []
+  },
+  {
+    "id": "mqttOutErro",
+    "type": "mqtt out",
+    "z": "tabSoldaTech",
+    "name": "soldatech/maquina/erro",
+    "topic": "soldatech/maquina/erro",
+    "qos": "0",
+    "retain": "false",
+    "respTopic": "",
+    "contentType": "",
+    "userProps": "",
+    "correl": "",
+    "expiry": "",
+    "broker": "brokerSoldaTech",
+    "x": 780,
+    "y": 340,
+    "wires": []
+  },
+  {
+    "id": "injStatus",
+    "type": "inject",
+    "z": "tabSoldaTech",
+    "name": "a cada 1s",
+    "props": [
+      {
+        "p": "payload"
+      }
+    ],
+    "repeat": "1",
+    "crontab": "",
+    "once": true,
+    "onceDelay": 2,
+    "topic": "",
+    "payload": "",
+    "payloadType": "date",
+    "x": 200,
+    "y": 460,
+    "wires": [
+      [
+        "fnLerStatus"
+      ]
+    ]
+  },
+  {
+    "id": "fnLerStatus",
+    "type": "function",
+    "z": "tabSoldaTech",
+    "name": "Ler CLP -> montar STATUS",
+    "func": "const client = global.get('clpClient');\nconst regs = global.get('clpRegs');\nconst estado = global.get('clpEstado');\n\nif (!client || !regs || !estado || !estado.conectado) {\n    // Sem CLP conectado ainda: nao publica um STATUS inventado.\n    return null;\n}\n\n(async () => {\n    try {\n        // Encoder do eixo Z e da mesa ainda NAO estao cabeados (ver\n        // I0.0/I0.1 'em breve'). Enquanto isso, NAO publicamos\n        // posicaoZMm/anguloMesaGraus - se publicassemos um valor fixo\n        // (ex.: 0), isso atrapalharia a animacao visual do navegador,\n        // que faz uma estimativa por enquanto. Reativar as duas linhas\n        // de leitura de inputRegisters e os dois campos abaixo assim\n        // que o encoder estiver cabeado e o mapa de enderecos dele\n        // confirmado (mesma tecnica: forcar e escanear Modbus).\n        const discretos = await client.readDiscreteInputs(regs.discreteInputs.executando, 5);\n\n        const bits = discretos.data;\n        const executando = Boolean(bits[0]);\n        const mesaPronta = Boolean(bits[1]);\n        const soldaAtiva = Boolean(bits[2]);\n        const emergenciaAtiva = Boolean(bits[3]);\n        const movimentoConcluido = Boolean(bits[4]);\n\n        const statusMsg = {\n            topic: 'soldatech/maquina/status',\n            payload: {\n                tipo: 'STATUS',\n                estado: emergenciaAtiva ? 'EMERGENCIA' : (executando ? 'EXECUTANDO' : 'PARADA'),\n                mesaPronta,\n                soldaAtiva,\n                emergencia: emergenciaAtiva,\n                timestamp: Date.now(),\n            },\n        };\n\n        let mesaReadyMsg = null;\n        let pontoAtingidoMsg = null;\n\n        const mesaProntaAnterior = flow.get('mesaProntaAnterior') || false;\n        if (mesaPronta && !mesaProntaAnterior) {\n            mesaReadyMsg = { topic: 'soldatech/maquina/resposta', payload: { tipo: 'MESA_READY', timestamp: Date.now() } };\n        }\n        flow.set('mesaProntaAnterior', mesaPronta);\n\n        const movimentoConcluidoAnterior = flow.get('movimentoConcluidoAnterior') || false;\n        if (movimentoConcluido && !movimentoConcluidoAnterior) {\n            const idComandoMovimento = flow.get('idComandoMovimentoPendente') || null;\n            pontoAtingidoMsg = {\n                topic: 'soldatech/maquina/resposta',\n                payload: { idComando: idComandoMovimento, tipo: 'PONTO_ATINGIDO', timestamp: Date.now() },\n            };\n        }\n        flow.set('movimentoConcluidoAnterior', movimentoConcluido);\n\n        node.send([statusMsg, mesaReadyMsg, pontoAtingidoMsg]);\n    } catch (erro) {\n        node.warn('Erro ao ler status do CLP: ' + erro.message);\n    }\n})();\n\nreturn null;\n",
+    "outputs": 3,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 480,
+    "y": 460,
+    "wires": [
+      [
+        "mqttOutStatus"
+      ],
+      [
+        "mqttOutResposta"
+      ],
+      [
+        "mqttOutResposta"
+      ]
+    ]
+  },
+  {
+    "id": "mqttOutStatus",
+    "type": "mqtt out",
+    "z": "tabSoldaTech",
+    "name": "soldatech/maquina/status",
+    "topic": "soldatech/maquina/status",
+    "qos": "0",
+    "retain": "false",
+    "respTopic": "",
+    "contentType": "",
+    "userProps": "",
+    "correl": "",
+    "expiry": "",
+    "broker": "brokerSoldaTech",
+    "x": 780,
+    "y": 460,
+    "wires": []
+  }
+]

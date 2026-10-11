@@ -4,8 +4,19 @@ MQTT - SOLDATECH
 =====================================
 */
 
-const MQTT_BROKER =
-  "wss://d86f195585704b50bc165c7872060e82.s1.eu.hivemq.cloud:8884/mqtt";
+
+/*
+Broker MQTT local (ver pasta mqtt-broker/
+na raiz do projeto). Roda no mesmo PC do
+Node-RED, sem depender de nuvem.
+
+Se o app for aberto de OUTRO computador/
+tablet na mesma rede (não o PC onde o
+broker está rodando), troque "localhost"
+pelo IP desse PC na rede local.
+*/
+const MQTT_BROKER = "ws://localhost:8888";
+
 
 const MQTT_TOPICO_COMANDO = "soldatech/maquina/comando";
 
@@ -547,12 +558,19 @@ function conectarMQTT() {
 
     password: "MQtesteVisao",
 
-    clean: true,
 
-    reconnectPeriod: 3000,
+      // Broker local (mqtt-broker/) não exige autenticação.
+      clean:
+        true,
 
-    connectTimeout: 10000,
-  });
+      reconnectPeriod:
+        3000,
+
+      connectTimeout:
+        10000
+    }
+  );
+
 
   /*
   =============================
@@ -925,6 +943,43 @@ window.SoldaTouchIntegracaoFisica = Object.freeze({
     };
   },
 });
+
+/*
+=====================================
+ADAPTADOR FÍSICO PADRÃO (MQTT -> CLP)
+=====================================
+
+Liga os pontos de extensão acima ao
+transporte MQTT deste arquivo. Assim
+o resto do sistema (novoprograma.js)
+só precisa chamar
+window.SoldaTouchIntegracaoFisica,
+sem saber que o transporte é MQTT.
+
+Comandos usados aqui (JOG_CIMA,
+JOG_BAIXO, JOG_PARAR, SOLDA_ON,
+SOLDA_OFF) devem ser tratados pelo
+flow do Node-RED que fica entre o
+broker MQTT e o CLP real.
+*/
+
+window.SoldaTouchIntegracaoFisica.registrarMovimentoManual({
+  iniciar(direcao) {
+    const comando = direcao === "CIMA" ? "JOG_CIMA" : "JOG_BAIXO";
+    return publicarMQTT(comando, {});
+  },
+
+  parar() {
+    return publicarMQTT("JOG_PARAR", {});
+  },
+});
+
+window.SoldaTouchIntegracaoFisica.registrarSoldagem({
+  definirAtiva(ativa, contexto = {}) {
+    return publicarMQTT(ativa ? "SOLDA_ON" : "SOLDA_OFF", contexto);
+  },
+});
+
 
 /*
 =====================================

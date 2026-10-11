@@ -131,6 +131,50 @@ PAINEL DE MOTIVO DA PAUSA
   </div>
 
 </div>
+
+<!-- =================================
+MODO DE REPRODUÇÃO (SEQUENCIAL/SINGULAR)
+================================= -->
+
+<div
+  id="modalModoReproducao"
+  class="modal-motivo-pausa"
+  style="display: none;"
+>
+  <div class="painel-motivo-pausa">
+    <h3>Como reproduzir?</h3>
+
+    <p>
+      Deseja iniciar em modo sequencial ou singular?
+    </p>
+
+    <div class="lista-motivos-pausa">
+      <button
+        type="button"
+        id="btnModoSequencial"
+        class="btn-motivo-pausa"
+      >
+        🔁 Sequencial — ao chegar no último ponto, volta pro primeiro
+      </button>
+
+      <button
+        type="button"
+        id="btnModoSingular"
+        class="btn-motivo-pausa"
+      >
+        ⏹ Singular — ao chegar no último ponto, para e aguarda novo play
+      </button>
+    </div>
+
+    <button
+      type="button"
+      id="btnCancelarModoReproducao"
+    >
+      Cancelar
+    </button>
+  </div>
+</div>
+
 <div
   id="painelContagemInicio"
   style="
@@ -198,6 +242,10 @@ PAINEL DE MOTIVO DA PAUSA
       <button onclick="salvarPonto()">SALVAR PONTO</button>
 
       <button onclick="salvarPrograma()">SALVAR PROGRAMA</button>
+
+      <button id="btnIniciarReproducao" type="button">
+        ▶ INICIAR REPRODUÇÃO
+      </button>
 
       <p
         id="statusPrograma"
@@ -289,6 +337,11 @@ PAINEL DE MOTIVO DA PAUSA
       <p id="ultimoContatoClp" class="painel-conexao__contato">
         Última resposta: --
       </p>
+
+      <label class="painel-conexao__toggle" for="chkMaquinaReal">
+        <input type="checkbox" id="chkMaquinaReal" />
+        Controlar a máquina real (CLP)
+      </label>
     </aside>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>

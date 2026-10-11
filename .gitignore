@@ -14,5 +14,8 @@ __pycache__/
 # Dependências Node.js
 node_modules/
 
+# Arquivos do Claude
+.claude/
+
 # Arquivos temporários
 *.log

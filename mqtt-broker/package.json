@@ -1,0 +1,14 @@
+{
+  "name": "soldatech-mqtt-broker",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Broker MQTT local para o SoldaTech (navegador <-> Node-RED <-> CLP), sem depender de nuvem.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "aedes": "^0.51.3",
+    "websocket-stream": "^5.5.2"
+  }
+}
