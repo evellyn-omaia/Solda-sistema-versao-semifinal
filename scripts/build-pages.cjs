@@ -9,13 +9,18 @@ fs.rmSync(out, { recursive: true, force: true });
 fs.mkdirSync(out, { recursive: true });
 const dirs = ['solda-login', 'solda-system', 'new-program', 'carregar-programa', 'iniciar-producao', 'modo-ensino', 'painel-producao', 'configuracoes', 'alarmes', 'shared', 'images', 'assets'];
 const extensions = new Set(['.html', '.css', '.js', '.mjs', '.glb', '.png', '.jpg', '.jpeg', '.svg', '.webp', '.wasm', '.task']);
+function copyAsset(source, target) {
+  if (/\.(?:html|css|m?js|svg)$/.test(source)) {
+    fs.writeFileSync(target, fs.readFileSync(source, 'utf8').replace(/\r\n/g, '\n'));
+  } else fs.copyFileSync(source, target);
+}
 function copy(src, dest) {
   for (const entry of fs.readdirSync(src, { withFileTypes: true })) {
     const source = path.join(src, entry.name), target = path.join(dest, entry.name);
     if (entry.isSymbolicLink()) throw new Error(`Link simbólico não permitido: ${source}`);
     if (entry.name.startsWith('.')) continue;
     if (entry.isDirectory()) { fs.mkdirSync(target, { recursive: true }); copy(source, target); }
-    else if (extensions.has(path.extname(entry.name))) fs.copyFileSync(source, target);
+    else if (extensions.has(path.extname(entry.name))) copyAsset(source, target);
   }
 }
 for (const dir of dirs) {
@@ -23,7 +28,7 @@ for (const dir of dirs) {
   fs.mkdirSync(path.join(out, dir), { recursive: true });
   copy(path.join(root, dir), path.join(out, dir));
 }
-for (const file of ['index.html', 'shared-responsive.css']) fs.copyFileSync(path.join(root, file), path.join(out, file));
+for (const file of ['index.html', 'shared-responsive.css']) copyAsset(path.join(root, file), path.join(out, file));
 fs.writeFileSync(path.join(out, '.nojekyll'), '');
 fs.writeFileSync(path.join(out, 'release.json'), JSON.stringify({
   revision: execFileSync('git', ['rev-parse', 'HEAD'], { cwd: root, encoding: 'utf8' }).trim(),
