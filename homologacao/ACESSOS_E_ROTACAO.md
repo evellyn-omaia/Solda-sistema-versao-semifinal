@@ -39,3 +39,5 @@ Não foi localizada conta de teste disponível, variável de autenticação Fire
 6. Criar programa de quatro pontos com solda física desativada; salvar e recarregar; executar cinco peças, pausar/retomar e confirmar cada próxima peça. Em outra aba autenticada, abrir o painel. Conferir 20 pontos, 100%, cinco peças, histórico único e remoção da produção ativa, com persistência após reload. Conferir os registros reais no RTDB e repetir login/logout, CRUD e isolamento em outra empresa. Não confundir o adaptador de teste com Firebase real.
 
 Para câmera no celular, seguir o roteiro de `RELATORIO_FINAL.md` usando o domínio atual. A câmera requer HTTPS e consentimento no dispositivo. Não inserir um programa de produção real nem habilitar o modo físico.
+
+Referências Firebase: [Email/Password](https://firebase.google.com/docs/auth/web/password-auth) e [domínios autorizados](https://firebase.google.com/docs/auth/web/passing-state-in-email-actions). O domínio autorizado é especialmente necessário nos fluxos OAuth e links de ações; conferir essa lista não substitui testar o login Email/Password utilizado pela aplicação.

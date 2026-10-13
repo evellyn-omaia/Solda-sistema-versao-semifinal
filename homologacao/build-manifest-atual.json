@@ -5,7 +5,7 @@
   },
   {
     "file": "alarmes/index.html",
-    "sha256": "4abb7155d7196866fc6643f8361a3e32d57ec29228d80f8cd6f185600fa7c81c"
+    "sha256": "58d98b8ede6578ecb3af270bbc35d47f9fa997b4dfd63c83929618c996e8f0e5"
   },
   {
     "file": "assets/models/montagem_victor_final.glb",
@@ -13,19 +13,19 @@
   },
   {
     "file": "carregar-programa/carregarprograma.css",
-    "sha256": "d2693cf9d96c5976aca43bcb74760783a60f0428854a40faba94b2cddd927961"
+    "sha256": "472fc6873a09c065578413d4a5cf9825e9b6e48acd946554f32a094798f046fc"
   },
   {
     "file": "carregar-programa/carregarprograma.html",
-    "sha256": "cf3ea4dc35c4f7d40eff80380a8be7e311aead772f23e087e3ab1f1ef0206f2a"
+    "sha256": "fcdfd77a68a0338f44b5f6e71e112c8d3d7d280a5d720ce92864bd8f03769069"
   },
   {
     "file": "carregar-programa/carregarprograma.js",
-    "sha256": "0a500f66a37d21402e1f64edbdf62c963827d14d1dfe8149b0a863bfcfab2837"
+    "sha256": "945c9ab28d6cb1feb2ecdca2c1bcfda6383e3a4d8b2fdb3c6863705f0440b887"
   },
   {
     "file": "configuracoes/index.html",
-    "sha256": "f25b796a7b72e9b16a4afbdf2e41af4c9cd2f9a1b5073cb70aa8940ce6f67837"
+    "sha256": "e4328718e81dd68b7e1268b06cfb490b9e8ab0ebd792099f2fc942c76616328b"
   },
   {
     "file": "images/carregarprograma.png",
@@ -61,31 +61,31 @@
   },
   {
     "file": "index.html",
-    "sha256": "97ba6c449db4baffbd67fc3b4d2a1aaefd6373ab644e219e4d5b2c836e050ab7"
+    "sha256": "b7d4b187a68f4b8e41ac3c20725c771cf4d90e438c9d39d3f38da8236d9acb2f"
   },
   {
     "file": "iniciar-producao/iniciarproducao.css",
-    "sha256": "8c4e46bf6c69029dc70634214bbd744b169ab88a6675e3abf0caee8ecaa9e473"
+    "sha256": "bbe8c51e00e21ca4d616db0b154c77b69d12a1991824fb30d85187b98ad847a8"
   },
   {
     "file": "iniciar-producao/iniciarproducao.html",
-    "sha256": "d78a430533896cd1c8cf49e0a6a63a92f27e4af7916540f2e0d4dc4be3601a4c"
+    "sha256": "5cdc3d13f9dcb50df90c79af73434cdcec52a5cb40ca2e3e28e3cc59f6c5af71"
   },
   {
     "file": "iniciar-producao/iniciarproducao.js",
-    "sha256": "70705834132533d7d20f18cf6dfda06d1c04523ba2223c7f92261b28746a6c1b"
+    "sha256": "3a9585e1b7aaa5e5d7667104f66285b172e42dd626a7325234fe114d9133d9ce"
   },
   {
     "file": "modo-ensino/modoensino.css",
-    "sha256": "906dcc5ec7985731a5cbec38eac2a0544dd63a42c38d16c17bda08a7bf5429b6"
+    "sha256": "519be0e3e573d9337d300c656caa0d555b14e37cb44ad929173db4ca245af974"
   },
   {
     "file": "modo-ensino/modoensino.html",
-    "sha256": "b363ff4696dfb346dfef15d483520cd7fc90892576bdcd3cd293ad3bb34e14c2"
+    "sha256": "8f8b8556bc990d25f186be6fa88935f07512b353d058e69166ed398b47822420"
   },
   {
     "file": "modo-ensino/modoensino.js",
-    "sha256": "9025c4efab2fb88a8847a329fcccefa5721821a5b7fbf3fb8fdc4cc1e8a3b70d"
+    "sha256": "2dc36437a95b5c9fe0938230bf65d747fe263b7759e28b5c3bca67a7c550576e"
   },
   {
     "file": "new-program/camera.css",
@@ -93,15 +93,15 @@
   },
   {
     "file": "new-program/camera.html",
-    "sha256": "c27bffd7470746d0ab5fb13e54421dac19b9c2130adacf42b34ff102c155c87b"
+    "sha256": "810a55a7d1441421db1bac075bbe058f5aa432a6453aac1360bc8d283f763138"
   },
   {
     "file": "new-program/camera.js",
-    "sha256": "340e963d08eb6d3e685932557b8ed5bdf08b4e2a40ae34065648c083bd716394"
+    "sha256": "05793c4ed37c044b059a6b1ecc74c6df8be9d1c73b4b9ea3ea705c224319ff5f"
   },
   {
     "file": "new-program/esp32-teste.js",
-    "sha256": "7582603451adc0644a7cc23bae562f1ca044f289e78b90f8d223322fc3b8d34d"
+    "sha256": "90d5db7e62b081b6b5110af9e1bea97b1713ad519363a6d1ff51cb9382425856"
   },
   {
     "file": "new-program/firebase-loader.js",
@@ -109,7 +109,7 @@
   },
   {
     "file": "new-program/firebase-programas.js",
-    "sha256": "1982699359f315bbf03bbbaf3f3332ff3892ec15b8c6b6a8e8141506a416c03a"
+    "sha256": "e164e698377d53cac42da37d2bdb66d32e37c98290f9d65966c576cc2d023fd6"
   },
   {
     "file": "new-program/mqtt-config.js",
@@ -117,23 +117,23 @@
   },
   {
     "file": "new-program/mqtt-maquina.js",
-    "sha256": "624b9488836dff7b358646a4d09437b973ae59af5cb04c5ad5ebdd766b373335"
+    "sha256": "50a2109c5795a5df8ee0e21ab50b474ed765f89b9397cf563c7e81246e12f5c4"
   },
   {
     "file": "new-program/novoprograma.css",
-    "sha256": "305a436540642c287995016022425ab98425a244559d8a8a1cc289415dc811b6"
+    "sha256": "931601e86d16c40cc0e067845c1747885f70f70c5322cd47e1ae51a495cf8456"
   },
   {
     "file": "new-program/novoprograma.html",
-    "sha256": "a8c0d105815c586da4bca6288e0d98a7c49209c32a35892108ddacf502609df3"
+    "sha256": "ec0182bb32fd0868af3126fd33bf98b528daf6b895de7049ef7f2e9b0573bd5c"
   },
   {
     "file": "new-program/novoprograma.js",
-    "sha256": "b78eea5138cc501c2d34b5ec0205e959bc319aba1eb02c1ebd9f6e5fcb4e4d3c"
+    "sha256": "bbe54f6536f45f880ef77b2738a483692673f0fcd20d4a5d5689cdf12d223259"
   },
   {
     "file": "new-program/simulacao-integrada.mjs",
-    "sha256": "2f9062bc8be391f6a172505161352c7fa75d419d574835bf85981566b4fc2c13"
+    "sha256": "96ec2ed0ca03c93d204ddf3bd105dc357393792885007b1335acdebae8e3616a"
   },
   {
     "file": "new-program/visao-camera.mjs",
@@ -149,19 +149,19 @@
   },
   {
     "file": "painel-producao/painelproducao.css",
-    "sha256": "6b95a04b400eb0560e06ff3ade43ef69ead9f201fb4b0cd87c61a2906b5bfe3e"
+    "sha256": "3cd965c1c20f5944ae4982e080f639492f4cfa85b11cb3eb38e5619d54adceca"
   },
   {
     "file": "painel-producao/painelproducao.html",
-    "sha256": "b0855c8f84a53c27393ee1c9977972ea93cb8008bbeec720cedfe28dd5b0d627"
+    "sha256": "7977dd0acf91a589aad941cc5b58b0f2e6d1c0dfeea9a2fa157ddd0f9c24c46e"
   },
   {
     "file": "painel-producao/painelproducao.js",
-    "sha256": "5fb6407745d1818ba591674e4181e01eec76708c302359c72d5017fd9595bc15"
+    "sha256": "28f7da3a1aae529f1c38f99125a46c10ecf000923d86f822f50f8d3b2c03ce90"
   },
   {
     "file": "release.json",
-    "sha256": "e33c72eb8e44c95d920dd0d157b2c4669c863412f49bf98efa83506ad7ea93d7"
+    "sha256": "86f5ebd84d1058599915b2278832547392c7b3f867addd76c7a6c6d462cd73e7"
   },
   {
     "file": "shared/navigation.js",
@@ -169,62 +169,62 @@
   },
   {
     "file": "shared-responsive.css",
-    "sha256": "2f4a1d4c9b63c0bf71f0bcd53c139097fceacf448b73cdb5ee57c9f1581f3a4a"
+    "sha256": "922eb6593f8363fe1a5c6e58d97a2549f0f365c08e2efb6e65f50b2a3c9a08e4"
   },
   {
     "file": "solda-login/criarconta.css",
-    "sha256": "1688accbb510d25442af079a6dab5412981097a766c8cc68d52846d7681ec3de"
+    "sha256": "c2b95ac458afe39474de13aff28336ab907b245be386f35f353ba3e0295ee05d"
   },
   {
     "file": "solda-login/criarConta.html",
-    "sha256": "797053e4230ddb0e59472d3cda8176ac46b1aeaef1e0f473a7f3fef2a9ea8a7c"
+    "sha256": "b7663c697eb4bb4fec4062a058da79764f592b3de822ce8b2e0138839c92b5ad"
   },
   {
     "file": "solda-login/criarConta.js",
-    "sha256": "fcc62f42ae96f09e82130ca2f7ddcd9852bab3d5f35147e1b3257f141ed17667"
+    "sha256": "c721079fb740b6f63cd74cb1c9923141e168e12376d01e2b5684fc0e2733e21a"
   },
   {
     "file": "solda-login/firebase.js",
-    "sha256": "a00d88708fdfe5a133b990a34a4e1b1f76de27651792a0f0b8db98fb273ce08d"
+    "sha256": "bbe8ab5730bbd08280e9100286b766a7fd40c8711f09ba5bf0d8f65c7927a7c2"
   },
   {
     "file": "solda-login/login.css",
-    "sha256": "b4cce1e5a065809cea8fcee9e8cceab81cfe7633db2dd19ec93e7bd25814bea8"
+    "sha256": "cbf9b8be54b414464784fb4162c053fb35d0088ad1665cb7a28d5c6144fe58d4"
   },
   {
     "file": "solda-login/login.html",
-    "sha256": "f4f5607ae8f5f801d818c492e3c0ba25c00b95faced5753ffe0fd37b1e826551"
+    "sha256": "4a046775d7e2b036161c623379fc6867472bab6dafc4dc8f66c642827c5df3ad"
   },
   {
     "file": "solda-login/login.js",
-    "sha256": "017fbafbecc61acaf91d33a25b1e2d920b0c1a136223908032ea6428abe304c6"
+    "sha256": "460031f713d610bcada7d0e7ccd32bd9825d6053446dc0fa4389ccfc76c284a2"
   },
   {
     "file": "solda-system/firebaseConfig.js",
-    "sha256": "faebff1365ecd3c2043d80881a712129acd44a46ee7a03020ca1aacc59464e28"
+    "sha256": "672eb82e18ae11529e012f715a8e883dded15820234df6e2ab3b764938d4b55f"
   },
   {
     "file": "solda-system/index.html",
-    "sha256": "a6fd6d8524be72c78171babf2b072665066b418b149a25c344ddbb49f3130616"
+    "sha256": "def27d8acb5a71ed2d030695321bc4778c8ad1f6bba535648ac1c18539686f74"
   },
   {
     "file": "solda-system/operadores.css",
-    "sha256": "ceeadbe967a2e933d945e46fcd4471ab8daabc4cfe5acdef488c5385fbb41b99"
+    "sha256": "d6e8774903417127c5b795e5ab3990cb2ff40fd45380c789409d01ac0f71a3a1"
   },
   {
     "file": "solda-system/operadores.html",
-    "sha256": "d7577ccc4eb9f7152c8e99f49a93d6c97ec0bd2257ff59f0f54ce55197c9eace"
+    "sha256": "e1133a9f4ecf207a7afe87b7b50cc1f1f49122ce386d7148b7370eff8a3a68ea"
   },
   {
     "file": "solda-system/operadores.js",
-    "sha256": "bc44fb1d6dd344fd438d318d21e0dc19d65f5831e96cc259133bb29876d33301"
+    "sha256": "8c21908e000eddcc6b800549aca87a25d87e26b9a265c38bf433be83a21cd8f4"
   },
   {
     "file": "solda-system/script.js",
-    "sha256": "258fc1f16d177574d2b9c50e0485a2c47cd006ab143e8b4532313634ebd5bc81"
+    "sha256": "96e5b37138a2f39262702139c45d0583c2717dbe7b052c44a8b842f619b18326"
   },
   {
     "file": "solda-system/style.css",
-    "sha256": "563dffedc63c703fd0918bbad59f8e920b8524becaaf3ce1b69e16ddcfee93d0"
+    "sha256": "322128321e771ddfe881be3e8f39fe4808aa990f338f5e6a95f2780eec42b5e3"
   }
 ]

@@ -1,0 +1,8 @@
+{
+  "html_url": "https://evellyn-omaia.github.io/Solda-sistema-versao-semifinal/",
+  "build_type": "workflow",
+  "source": {
+    "branch": "main",
+    "path": "/"
+  }
+}

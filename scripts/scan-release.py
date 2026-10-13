@@ -15,7 +15,8 @@ files = sorted(set(git('ls-files', '--cached', '--others', '--exclude-standard')
 for name in files:
     p = root / name
     if not p.is_file() or p.suffix.lower() not in ['.js','.mjs','.cjs','.py','.json','.md','.html','.yml','.yaml','.txt','.ps1']: continue
-    body = p.read_text(encoding='utf-8', errors='replace')
+    raw = p.read_bytes()
+    body = raw.decode('utf-16' if raw.startswith((b'\xff\xfe', b'\xfe\xff')) else 'utf-8', errors='replace')
     for kind, pattern in patterns.items():
         for match in re.finditer(pattern, body):
             findings.append({'file': name, 'line': body[:match.start()].count('\n') + 1, 'kind': kind})

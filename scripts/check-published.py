@@ -1,5 +1,6 @@
 """Compare deployed HTTPS files with the reviewed local artifact, without logging content."""
 import hashlib, json, re, urllib.request, urllib.error
+from urllib.parse import quote
 from pathlib import Path
 from datetime import datetime, timezone
 root=Path(__file__).resolve().parent.parent
@@ -7,7 +8,7 @@ base='https://evellyn-omaia.github.io/Solda-sistema-versao-semifinal/'
 result={'checkedAt':datetime.now(timezone.utc).isoformat(),'base':base,'files':[],'privatePaths':[]}
 def fetch(name):
     try:
-        with urllib.request.urlopen(urllib.request.Request(base+name,headers={'Cache-Control':'no-cache'}),timeout=30) as response:
+        with urllib.request.urlopen(urllib.request.Request(base+quote(name),headers={'Cache-Control':'no-cache'}),timeout=30) as response:
             return response.status,response.read()
     except urllib.error.HTTPError as error: return error.code,b''
 for item in json.loads((root/'homologacao/build-manifest-atual.json').read_text()):

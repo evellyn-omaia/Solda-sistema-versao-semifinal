@@ -1,0 +1,8 @@
+{
+  "branch": "release/homologacao-pages-20261013",
+  "commit": "b5ef6d966fd19f32395bff55b628cc06c0f27649",
+  "parent": "ec9ff310feacd45bf8f6efaaf58a3ffd9153fee6",
+  "tree": "55ba3fc2d440469e7da83605d107a7b2e2dcfb22",
+  "sourceHead": "e7740cdc37c2fc0c62cdfbdca6c5856ccea18c22",
+  "method": "sanitized snapshot on local main; original worktree and index preserved"
+}

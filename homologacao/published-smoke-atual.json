@@ -1,0 +1,34 @@
+{
+  "base": "https://evellyn-omaia.github.io/Solda-sistema-versao-semifinal",
+  "mockedFirebase": false,
+  "authenticated": false,
+  "physicalCamera": false,
+  "websocketAttempts": 0,
+  "pages": [
+    {
+      "path": "/solda-login/login.html",
+      "errors": 0,
+      "failedResponses": [],
+      "status": 200,
+      "secureContext": true
+    },
+    {
+      "path": "/new-program/camera.html",
+      "errors": 0,
+      "failedResponses": [],
+      "status": 200,
+      "secureContext": true,
+      "cameraNotStarted": true
+    },
+    {
+      "path": "/new-program/novoprograma.html",
+      "errors": 0,
+      "failedResponses": [],
+      "status": 200,
+      "secureContext": true,
+      "publicMode": true
+    }
+  ],
+  "unauthenticatedDatabaseStatus": 401,
+  "passed": true
+}

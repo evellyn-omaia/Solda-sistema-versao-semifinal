@@ -1,0 +1,355 @@
+{
+  "checkedAt": "2026-10-13T13:46:52.193794+00:00",
+  "base": "https://evellyn-omaia.github.io/Solda-sistema-versao-semifinal/",
+  "files": [
+    {
+      "file": ".nojekyll",
+      "status": 200,
+      "hashMatches": true
+    },
+    {
+      "file": "alarmes/index.html",
+      "status": 200,
+      "hashMatches": true,
+      "secretOrIndustrialIndicator": false
+    },
+    {
+      "file": "assets/models/montagem_victor_final.glb",
+      "status": 200,
+      "hashMatches": true
+    },
+    {
+      "file": "carregar-programa/carregarprograma.css",
+      "status": 200,
+      "hashMatches": true
+    },
+    {
+      "file": "carregar-programa/carregarprograma.html",
+      "status": 200,
+      "hashMatches": true,
+      "secretOrIndustrialIndicator": false
+    },
+    {
+      "file": "carregar-programa/carregarprograma.js",
+      "status": 200,
+      "hashMatches": true,
+      "secretOrIndustrialIndicator": false
+    },
+    {
+      "file": "configuracoes/index.html",
+      "status": 200,
+      "hashMatches": true,
+      "secretOrIndustrialIndicator": false
+    },
+    {
+      "file": "images/carregarprograma.png",
+      "status": 200,
+      "hashMatches": true
+    },
+    {
+      "file": "images/configuracoes.png",
+      "status": 200,
+      "hashMatches": true
+    },
+    {
+      "file": "images/iniciarproducao.png",
+      "status": 200,
+      "hashMatches": true
+    },
+    {
+      "file": "images/logosoldatech.svg",
+      "status": 200,
+      "hashMatches": true,
+      "secretOrIndustrialIndicator": false
+    },
+    {
+      "file": "images/modoensino.png",
+      "status": 200,
+      "hashMatches": true
+    },
+    {
+      "file": "images/Novoprograma (2).png",
+      "status": 200,
+      "hashMatches": true
+    },
+    {
+      "file": "images/paineldeproducao.png",
+      "status": 200,
+      "hashMatches": true
+    },
+    {
+      "file": "images/SENAI_logo_2024.png",
+      "status": 200,
+      "hashMatches": true
+    },
+    {
+      "file": "index.html",
+      "status": 200,
+      "hashMatches": true,
+      "secretOrIndustrialIndicator": false
+    },
+    {
+      "file": "iniciar-producao/iniciarproducao.css",
+      "status": 200,
+      "hashMatches": true
+    },
+    {
+      "file": "iniciar-producao/iniciarproducao.html",
+      "status": 200,
+      "hashMatches": true,
+      "secretOrIndustrialIndicator": false
+    },
+    {
+      "file": "iniciar-producao/iniciarproducao.js",
+      "status": 200,
+      "hashMatches": true,
+      "secretOrIndustrialIndicator": false
+    },
+    {
+      "file": "modo-ensino/modoensino.css",
+      "status": 200,
+      "hashMatches": true
+    },
+    {
+      "file": "modo-ensino/modoensino.html",
+      "status": 200,
+      "hashMatches": true,
+      "secretOrIndustrialIndicator": false
+    },
+    {
+      "file": "modo-ensino/modoensino.js",
+      "status": 200,
+      "hashMatches": true,
+      "secretOrIndustrialIndicator": false
+    },
+    {
+      "file": "new-program/camera.css",
+      "status": 200,
+      "hashMatches": true
+    },
+    {
+      "file": "new-program/camera.html",
+      "status": 200,
+      "hashMatches": true,
+      "secretOrIndustrialIndicator": false
+    },
+    {
+      "file": "new-program/camera.js",
+      "status": 200,
+      "hashMatches": true,
+      "secretOrIndustrialIndicator": false
+    },
+    {
+      "file": "new-program/esp32-teste.js",
+      "status": 200,
+      "hashMatches": true,
+      "secretOrIndustrialIndicator": false
+    },
+    {
+      "file": "new-program/firebase-loader.js",
+      "status": 200,
+      "hashMatches": true,
+      "secretOrIndustrialIndicator": false
+    },
+    {
+      "file": "new-program/firebase-programas.js",
+      "status": 200,
+      "hashMatches": true,
+      "secretOrIndustrialIndicator": false
+    },
+    {
+      "file": "new-program/mqtt-config.js",
+      "status": 200,
+      "hashMatches": true,
+      "secretOrIndustrialIndicator": false
+    },
+    {
+      "file": "new-program/mqtt-maquina.js",
+      "status": 200,
+      "hashMatches": true,
+      "secretOrIndustrialIndicator": false
+    },
+    {
+      "file": "new-program/novoprograma.css",
+      "status": 200,
+      "hashMatches": true
+    },
+    {
+      "file": "new-program/novoprograma.html",
+      "status": 200,
+      "hashMatches": true,
+      "secretOrIndustrialIndicator": false
+    },
+    {
+      "file": "new-program/novoprograma.js",
+      "status": 200,
+      "hashMatches": true,
+      "secretOrIndustrialIndicator": false
+    },
+    {
+      "file": "new-program/simulacao-integrada.mjs",
+      "status": 200,
+      "hashMatches": true,
+      "secretOrIndustrialIndicator": false
+    },
+    {
+      "file": "new-program/visao-camera.mjs",
+      "status": 200,
+      "hashMatches": true,
+      "secretOrIndustrialIndicator": false
+    },
+    {
+      "file": "new-program/visao-core.mjs",
+      "status": 200,
+      "hashMatches": true,
+      "secretOrIndustrialIndicator": false
+    },
+    {
+      "file": "new-program/visao-identidade.js",
+      "status": 200,
+      "hashMatches": true,
+      "secretOrIndustrialIndicator": false
+    },
+    {
+      "file": "painel-producao/painelproducao.css",
+      "status": 200,
+      "hashMatches": true
+    },
+    {
+      "file": "painel-producao/painelproducao.html",
+      "status": 200,
+      "hashMatches": true,
+      "secretOrIndustrialIndicator": false
+    },
+    {
+      "file": "painel-producao/painelproducao.js",
+      "status": 200,
+      "hashMatches": true,
+      "secretOrIndustrialIndicator": false
+    },
+    {
+      "file": "release.json",
+      "status": 200,
+      "hashMatches": true,
+      "secretOrIndustrialIndicator": false
+    },
+    {
+      "file": "shared/navigation.js",
+      "status": 200,
+      "hashMatches": true,
+      "secretOrIndustrialIndicator": false
+    },
+    {
+      "file": "shared-responsive.css",
+      "status": 200,
+      "hashMatches": true
+    },
+    {
+      "file": "solda-login/criarconta.css",
+      "status": 200,
+      "hashMatches": true
+    },
+    {
+      "file": "solda-login/criarConta.html",
+      "status": 200,
+      "hashMatches": true,
+      "secretOrIndustrialIndicator": false
+    },
+    {
+      "file": "solda-login/criarConta.js",
+      "status": 200,
+      "hashMatches": true,
+      "secretOrIndustrialIndicator": false
+    },
+    {
+      "file": "solda-login/firebase.js",
+      "status": 200,
+      "hashMatches": true,
+      "secretOrIndustrialIndicator": false
+    },
+    {
+      "file": "solda-login/login.css",
+      "status": 200,
+      "hashMatches": true
+    },
+    {
+      "file": "solda-login/login.html",
+      "status": 200,
+      "hashMatches": true,
+      "secretOrIndustrialIndicator": false
+    },
+    {
+      "file": "solda-login/login.js",
+      "status": 200,
+      "hashMatches": true,
+      "secretOrIndustrialIndicator": false
+    },
+    {
+      "file": "solda-system/firebaseConfig.js",
+      "status": 200,
+      "hashMatches": true,
+      "secretOrIndustrialIndicator": false
+    },
+    {
+      "file": "solda-system/index.html",
+      "status": 200,
+      "hashMatches": true,
+      "secretOrIndustrialIndicator": false
+    },
+    {
+      "file": "solda-system/operadores.css",
+      "status": 200,
+      "hashMatches": true
+    },
+    {
+      "file": "solda-system/operadores.html",
+      "status": 200,
+      "hashMatches": true,
+      "secretOrIndustrialIndicator": false
+    },
+    {
+      "file": "solda-system/operadores.js",
+      "status": 200,
+      "hashMatches": true,
+      "secretOrIndustrialIndicator": false
+    },
+    {
+      "file": "solda-system/script.js",
+      "status": 200,
+      "hashMatches": true,
+      "secretOrIndustrialIndicator": false
+    },
+    {
+      "file": "solda-system/style.css",
+      "status": 200,
+      "hashMatches": true
+    }
+  ],
+  "privatePaths": [
+    {
+      "file": "node-red/flows.json",
+      "status": 404
+    },
+    {
+      "file": "mqtt-broker/server.js",
+      "status": 404
+    },
+    {
+      "file": "database-rules.json",
+      "status": 404
+    },
+    {
+      "file": ".env",
+      "status": 404
+    },
+    {
+      "file": ".soldatech/runtime.json",
+      "status": 404
+    },
+    {
+      "file": "scripts/github-release.py",
+      "status": 404
+    }
+  ],
+  "passed": true
+}
