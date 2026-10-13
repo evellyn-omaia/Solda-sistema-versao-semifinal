@@ -1,0 +1,247 @@
+{
+  "checkedAt": "2026-10-13T13:40:06.723237+00:00",
+  "branches": {
+    "origin/main": "c3bd0a2e2231600064a7f46284f430501a8c953b",
+    "main": "ec9ff310feacd45bf8f6efaaf58a3ffd9153fee6",
+    "backup-visao-computacional": "e7740cdc37c2fc0c62cdfbdca6c5856ccea18c22",
+    "HEAD": "e7740cdc37c2fc0c62cdfbdca6c5856ccea18c22"
+  },
+  "credentialLocations": [
+    {
+      "ref": "origin/main",
+      "file": "new-program/mqtt-maquina.js",
+      "line": 8,
+      "indicators": [
+        "HiveMQ reference"
+      ]
+    },
+    {
+      "ref": "main",
+      "file": "mqtt-broker/server.js",
+      "line": 7,
+      "indicators": [
+        "HiveMQ reference"
+      ]
+    },
+    {
+      "ref": "main",
+      "file": "node-red/README.md",
+      "line": 14,
+      "indicators": [
+        "HiveMQ reference"
+      ]
+    },
+    {
+      "ref": "main",
+      "file": "node-red/README.md",
+      "line": 110,
+      "indicators": [
+        "HiveMQ reference"
+      ]
+    },
+    {
+      "ref": "main",
+      "file": "node-red/README.md",
+      "line": 150,
+      "indicators": [
+        "HiveMQ reference"
+      ]
+    },
+    {
+      "ref": "main",
+      "file": "node-red/README.md",
+      "line": 158,
+      "indicators": [
+        "HiveMQ reference"
+      ]
+    },
+    {
+      "ref": "main",
+      "file": "tutorial/01-O-QUE-FIZEMOS.md",
+      "line": 24,
+      "indicators": [
+        "HiveMQ reference"
+      ]
+    },
+    {
+      "ref": "backup-visao-computacional",
+      "file": "mqtt-broker/server.js",
+      "line": 7,
+      "indicators": [
+        "HiveMQ reference"
+      ]
+    },
+    {
+      "ref": "backup-visao-computacional",
+      "file": "new-program/mqtt-maquina.js",
+      "line": 557,
+      "indicators": [
+        "literal credential candidate"
+      ]
+    },
+    {
+      "ref": "backup-visao-computacional",
+      "file": "new-program/mqtt-maquina.js",
+      "line": 559,
+      "indicators": [
+        "literal credential candidate"
+      ]
+    },
+    {
+      "ref": "backup-visao-computacional",
+      "file": "node-red/README.md",
+      "line": 14,
+      "indicators": [
+        "HiveMQ reference"
+      ]
+    },
+    {
+      "ref": "backup-visao-computacional",
+      "file": "node-red/README.md",
+      "line": 110,
+      "indicators": [
+        "HiveMQ reference"
+      ]
+    },
+    {
+      "ref": "backup-visao-computacional",
+      "file": "node-red/README.md",
+      "line": 150,
+      "indicators": [
+        "HiveMQ reference"
+      ]
+    },
+    {
+      "ref": "backup-visao-computacional",
+      "file": "node-red/README.md",
+      "line": 158,
+      "indicators": [
+        "HiveMQ reference"
+      ]
+    },
+    {
+      "ref": "backup-visao-computacional",
+      "file": "tutorial/01-O-QUE-FIZEMOS.md",
+      "line": 24,
+      "indicators": [
+        "HiveMQ reference"
+      ]
+    },
+    {
+      "ref": "backup-visao-computacional",
+      "file": "visao-python/visao.py",
+      "line": 20,
+      "indicators": [
+        "HiveMQ reference"
+      ]
+    },
+    {
+      "ref": "backup-visao-computacional",
+      "file": "visao-python/visao.py",
+      "line": 25,
+      "indicators": [
+        "HiveMQ reference"
+      ]
+    },
+    {
+      "ref": "backup-visao-computacional",
+      "file": "visao-python/visao.py",
+      "line": 104,
+      "indicators": [
+        "HiveMQ reference"
+      ]
+    },
+    {
+      "ref": "backup-visao-computacional",
+      "file": "visao-python/visao.py",
+      "line": 133,
+      "indicators": [
+        "HiveMQ reference"
+      ]
+    },
+    {
+      "ref": "backup-visao-computacional",
+      "file": "visao-python/visao.py",
+      "line": 143,
+      "indicators": [
+        "HiveMQ reference"
+      ]
+    },
+    {
+      "ref": "backup-visao-computacional",
+      "file": "visao-python/visao.py",
+      "line": 147,
+      "indicators": [
+        "HiveMQ reference"
+      ]
+    },
+    {
+      "ref": "backup-visao-computacional",
+      "file": "visao-python/visao.py",
+      "line": 197,
+      "indicators": [
+        "HiveMQ reference"
+      ]
+    }
+  ],
+  "remote": [
+    {
+      "path": "/",
+      "status": 200,
+      "permissions": {
+        "admin": true,
+        "maintain": true,
+        "push": true,
+        "triage": true,
+        "pull": true
+      },
+      "default_branch": "main",
+      "html_url": "https://github.com/evellyn-omaia/Solda-sistema-versao-semifinal"
+    },
+    {
+      "path": "/pages",
+      "status": 200,
+      "build_type": "legacy",
+      "source": {
+        "branch": "main",
+        "path": "/"
+      },
+      "html_url": "https://evellyn-omaia.github.io/Solda-sistema-versao-semifinal/"
+    },
+    {
+      "path": "/actions/workflows",
+      "status": 200,
+      "total_count": 1
+    },
+    {
+      "path": "index",
+      "status": 200,
+      "hivemq": false,
+      "literalPassword": false
+    },
+    {
+      "path": "new-program/camera.html",
+      "status": 404,
+      "hivemq": false,
+      "literalPassword": false
+    },
+    {
+      "path": "new-program/simulacao-integrada.mjs",
+      "status": 404,
+      "hivemq": false,
+      "literalPassword": false
+    },
+    {
+      "path": "new-program/visao-camera.mjs",
+      "status": 404,
+      "hivemq": false,
+      "literalPassword": false
+    },
+    {
+      "path": "new-program/mqtt-maquina.js",
+      "status": 200,
+      "hivemq": true,
+      "literalPassword": true
+    }
+  ]
+}

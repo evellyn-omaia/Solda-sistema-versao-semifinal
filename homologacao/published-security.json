@@ -1,0 +1,8 @@
+{
+  "url": "https://esterv-dev.github.io/Solda-sistema-versao-semifinal/new-program/mqtt-maquina.js",
+  "status": 200,
+  "hardcodedPassword": true,
+  "hardcodedUsername": true,
+  "mqttCloudEndpoint": true,
+  "valuesRedacted": true
+}

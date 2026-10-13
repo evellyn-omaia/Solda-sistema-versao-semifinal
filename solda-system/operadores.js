@@ -215,13 +215,15 @@ const snapshot =
           document.createElement("div");
 
 
-        operador.innerHTML = `
-          <p>
-            <strong>${usuario.nome}</strong>
-            <br>
-            ${usuario.email}
-          </p>
-        `;
+        const descricao = document.createElement("p");
+        const nomeOperador = document.createElement("strong");
+        nomeOperador.textContent = usuario.nome || "";
+        descricao.append(
+          nomeOperador,
+          document.createElement("br"),
+          document.createTextNode(usuario.email || ""),
+        );
+        operador.appendChild(descricao);
 
 
         listaOperadores.appendChild(

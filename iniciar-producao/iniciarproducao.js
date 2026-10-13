@@ -1,3 +1,5 @@
+import { CHAVE_SESSAO, CHAVE_RETORNO, CAMERA_URL, criarSessao, lerSessao, validarItens } from "../new-program/visao-core.mjs";
+
 const selectPrograma = document.getElementById("selectPrograma");
 const quantidade = document.getElementById("quantidade");
 const tipoMaterial = document.getElementById("tipoMaterial");
@@ -16,6 +18,62 @@ let produzidos = 0;
 let filaProcessando = false;
 let programasDisponiveis = {};
 let producaoPendente = null;
+let abrindoVisao = false;
+
+async function abrirVisaoComputacional() {
+  if (abrindoVisao || filaProcessando || producaoPendente) return;
+  abrindoVisao = true;
+  const botao = document.getElementById("btnVisao");
+  botao.disabled = true;
+  try {
+    const selecao = { programa: selectPrograma.value, quantidade: quantidade.value,
+      tipoMaterial: tipoMaterial.value, materialSolda: materialSolda.value };
+    const contexto = await window.obterContextoVisaoFirebase();
+    // Leitura autenticada; uma falha não é interpretada como ausência de produção.
+    const pendente = await window.buscarProducaoAtualFirebase();
+    if (pendente && ["PAUSADO", "EXECUTANDO", "AGUARDANDO_PECA", "AGUARDANDO_INICIO", "PREPARANDO"].includes(pendente.status)) {
+      throw new Error("Existe uma produção pendente. Continue ou encerre essa produção antes de abrir a visão.");
+    }
+    const programas = await window.listarProgramasFirebase();
+    const conferido = await window.obterContextoVisaoFirebase();
+    if (contexto.uid !== conferido.uid || contexto.empresaId !== conferido.empresaId) {
+      throw new Error("A conta mudou. Recarregue a página.");
+    }
+    const sessao = criarSessao({ contexto, programas, fila, selecao });
+    sessionStorage.setItem(CHAVE_SESSAO, JSON.stringify(sessao));
+    sessionStorage.setItem(CHAVE_RETORNO, sessao.id);
+    window.location.href = CAMERA_URL;
+  } catch (erro) {
+    statusProducao.innerText = erro.message || "Não foi possível validar a configuração. Verifique sua conexão e tente novamente.";
+    quantidade.focus();
+  } finally {
+    abrindoVisao = false;
+    botao.disabled = Boolean(producaoPendente);
+  }
+}
+
+async function restaurarConfiguracaoVisao() {
+  if (!sessionStorage.getItem(CHAVE_RETORNO)) return;
+  try {
+    const contexto = await window.obterContextoVisaoFirebase();
+    const sessao = lerSessao(sessionStorage, contexto);
+    if (sessionStorage.getItem(CHAVE_RETORNO) !== sessao.id) throw new Error("Sessão de retorno inválida.");
+    validarItens(sessao.itens, programasDisponiveis);
+    const rascunho = sessao.rascunho;
+    fila = rascunho.fila.length ? validarItens(rascunho.fila, programasDisponiveis) : [];
+    selectPrograma.value = rascunho.selecao.programa;
+    quantidade.value = rascunho.selecao.quantidade;
+    tipoMaterial.value = rascunho.selecao.tipoMaterial;
+    materialSolda.value = rascunho.selecao.materialSolda;
+  } catch (erro) {
+    console.warn("Configuração da visão não restaurada:", erro.message);
+  } finally {
+    sessionStorage.removeItem(CHAVE_RETORNO);
+    sessionStorage.removeItem(CHAVE_SESSAO);
+  }
+}
+
+document.getElementById("btnVisao").addEventListener("click", abrirVisaoComputacional);
 
 async function verificarProducaoPendente() {
 
@@ -78,6 +136,7 @@ function bloquearNovaProducao() {
 
 
   selectPrograma.disabled = true;
+  document.getElementById("btnVisao").disabled = true;
   quantidade.disabled = true;
   tipoMaterial.disabled = true;
   materialSolda.disabled = true;
@@ -831,6 +890,7 @@ window.addEventListener(
     }
 
     await carregarProgramas();
+    await restaurarConfiguracaoVisao();
     await carregarProducaoDia();
     atualizarFila();
   }

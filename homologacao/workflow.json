@@ -1,0 +1,12 @@
+{
+  "yaml": "PASS",
+  "permissions": {
+    "contents": "read",
+    "pages": "write",
+    "id-token": "write"
+  },
+  "trigger": {
+    "workflow_dispatch": null
+  },
+  "deployAction": "actions/deploy-pages@v4"
+}

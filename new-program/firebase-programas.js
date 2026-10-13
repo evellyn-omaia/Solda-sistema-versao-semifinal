@@ -33,6 +33,55 @@ function esperarUsuarioLogado() {
   });
 }
 
+// A sessão é apenas um cache: o vínculo autorizado vem do cadastro no Firebase.
+async function obterEmpresaId(usuario) {
+  if (!usuario?.uid || auth.currentUser?.uid !== usuario.uid) {
+    throw new Error("Usuário não está logado.");
+  }
+
+  const empresaIdSessao = sessionStorage.getItem("empresaId");
+  const snapshotUsuario = await get(ref(db, `usuarios/${usuario.uid}`));
+
+  if (!snapshotUsuario.exists()) {
+    sessionStorage.removeItem("empresaId");
+    throw new Error("Dados do usuário não encontrados.");
+  }
+
+  const empresaIdCadastro = snapshotUsuario.val()?.empresaId;
+  if (
+    typeof empresaIdCadastro !== "string" ||
+    !empresaIdCadastro.trim() ||
+    /[.#$/[\]\u0000-\u001f\u007f]/.test(empresaIdCadastro)
+  ) {
+    sessionStorage.removeItem("empresaId");
+    throw new Error("Empresa do usuário não identificada no cadastro.");
+  }
+
+  const empresaId = empresaIdSessao === empresaIdCadastro
+    ? empresaIdSessao
+    : empresaIdCadastro;
+  const snapshotEmpresa = await get(ref(db, `empresas/${empresaId}`));
+
+  // A autenticação pode mudar enquanto as consultas estão em andamento.
+  if (auth.currentUser?.uid !== usuario.uid) {
+    throw new Error("Usuário autenticado mudou. Tente novamente.");
+  }
+  if (!snapshotEmpresa.exists()) {
+    sessionStorage.removeItem("empresaId");
+    throw new Error("Empresa do usuário não encontrada.");
+  }
+
+  sessionStorage.setItem("empresaId", empresaId);
+  return empresaId;
+}
+
+// Identidade conferida no cadastro, reutilizada pela navegação da visão mobile.
+window.obterContextoVisaoFirebase = async function () {
+  const usuario = await esperarUsuarioLogado();
+  const empresaId = await obterEmpresaId(usuario);
+  return { uid: usuario.uid, empresaId };
+};
+
 /* ==========================
 INICIAR PAUSA
 ========================== */
@@ -43,7 +92,7 @@ window.iniciarPausaFirebase = async function (
 ) {
   const usuario = await esperarUsuarioLogado();
 
-  const empresaId = sessionStorage.getItem("empresaId");
+  const empresaId = await obterEmpresaId(auth.currentUser);
 
   const operadorNome =
     sessionStorage.getItem("nomeUsuario") ||
@@ -103,7 +152,7 @@ ATUALIZAR MOTIVO DA PAUSA
 window.atualizarMotivoPausaFirebase = async function (pausaId, motivo) {
   await esperarUsuarioLogado();
 
-  const empresaId = sessionStorage.getItem("empresaId");
+  const empresaId = await obterEmpresaId(auth.currentUser);
 
   if (!empresaId) {
     throw new Error("Empresa do usuário não identificada.");
@@ -146,7 +195,7 @@ FINALIZAR PAUSA
 window.finalizarPausaFirebase = async function (pausaId) {
   await esperarUsuarioLogado();
 
-  const empresaId = sessionStorage.getItem("empresaId");
+  const empresaId = await obterEmpresaId(auth.currentUser);
 
   if (!empresaId) {
     throw new Error("Empresa do usuário não identificada.");
@@ -205,7 +254,7 @@ BUSCAR OPERADORES DA EMPRESA
 ========================== */
 
 window.buscarOperadoresEmpresaFirebase =
-async function() {
+async function(incluirProprioAdmin = false) {
 
   const usuario =
     await esperarUsuarioLogado();
@@ -258,7 +307,7 @@ async function() {
 
       if (
         dados.tipoUsuario !==
-        "operador"
+        "operador" && !(incluirProprioAdmin && filho.key === usuario.uid)
       ) {
         return;
       }
@@ -301,7 +350,7 @@ async function() {
 window.buscarPausasEmpresaFirebase = async function () {
   await esperarUsuarioLogado();
 
-  const empresaId = sessionStorage.getItem("empresaId");
+  const empresaId = await obterEmpresaId(auth.currentUser);
   const tipoUsuario = sessionStorage.getItem("tipoUsuario");
 
   if (!empresaId) {
@@ -329,13 +378,15 @@ SALVAR PROGRAMA
 ========================== */
 
 window.salvarProgramaFirebase = async function (nome, programa) {
+  if (typeof nome !== "string" || !nome.trim() || /[\u0000-\u001f\u007f]/.test(nome)) {
+    throw new Error("Informe um nome válido para o programa.");
+  }
+  if (!programa || typeof programa !== "object" || Array.isArray(programa)) {
+    throw new Error("Dados do programa inválidos.");
+  }
   const usuario = await esperarUsuarioLogado();
 
-  const empresaId = sessionStorage.getItem("empresaId");
-
-  if (!empresaId) {
-    throw new Error("Empresa do usuário não identificada.");
-  }
+  const empresaId = await obterEmpresaId(usuario);
 
   const nomeSeguro = nome.trim().replace(/[.#$/[\]]/g, "-");
 
@@ -363,13 +414,9 @@ CARREGAR UM PROGRAMA
 ========================== */
 
 window.carregarProgramaFirebase = async function (nome) {
-  await esperarUsuarioLogado();
-
-  const empresaId = sessionStorage.getItem("empresaId");
-
-  if (!empresaId) {
-    throw new Error("Empresa do usuário não identificada.");
-  }
+  validarChavePrograma(nome);
+  const usuario = await esperarUsuarioLogado();
+  const empresaId = await obterEmpresaId(usuario);
 
   const snapshot = await get(
     ref(db, `empresas/${empresaId}/programas/${nome}`),
@@ -387,13 +434,8 @@ LISTAR PROGRAMAS DO USUÁRIO
 ========================== */
 
 window.listarProgramasFirebase = async function () {
-  await esperarUsuarioLogado();
-
-  const empresaId = sessionStorage.getItem("empresaId");
-
-  if (!empresaId) {
-    throw new Error("Empresa do usuário não identificada.");
-  }
+  const usuario = await esperarUsuarioLogado();
+  const empresaId = await obterEmpresaId(usuario);
 
   const snapshot = await get(ref(db, `empresas/${empresaId}/programas`));
 
@@ -407,14 +449,16 @@ window.listarProgramasFirebase = async function () {
 EXCLUIR PROGRAMA
 ========================== */
 
-window.excluirProgramaFirebase = async function (nome) {
-  await esperarUsuarioLogado();
-
-  const empresaId = sessionStorage.getItem("empresaId");
-
-  if (!empresaId) {
-    throw new Error("Empresa do usuário não identificada.");
+function validarChavePrograma(nome) {
+  if (typeof nome !== "string" || !nome.trim() || /[.#$/[\]\u0000-\u001f\u007f]/.test(nome)) {
+    throw new Error("Chave de programa inválida.");
   }
+}
+
+window.excluirProgramaFirebase = async function (nome) {
+  validarChavePrograma(nome);
+  const usuario = await esperarUsuarioLogado();
+  const empresaId = await obterEmpresaId(usuario);
 
   await remove(ref(db, `empresas/${empresaId}/programas/${nome}`));
 };
@@ -437,7 +481,7 @@ function obterDataLocalISO() {
 window.salvarProducaoDiaFirebase = async function (filaProducao, tempoTotal) {
   const usuario = await esperarUsuarioLogado();
 
-  const empresaId = sessionStorage.getItem("empresaId");
+  const empresaId = await obterEmpresaId(auth.currentUser);
 
   if (!empresaId) {
     throw new Error("empresaId não encontrado na sessão.");
@@ -540,7 +584,7 @@ window.salvarProducaoDiaFirebase = async function (filaProducao, tempoTotal) {
 window.buscarProducaoDiaFirebase = async function () {
   const usuario = await esperarUsuarioLogado();
 
-  const empresaId = sessionStorage.getItem("empresaId");
+  const empresaId = await obterEmpresaId(auth.currentUser);
 
   if (!empresaId) {
     throw new Error("empresaId não encontrado na sessão.");
@@ -576,7 +620,7 @@ window.buscarProducaoDiaFirebase = async function () {
 window.buscarHistoricoDiarioFirebase = async function () {
   const usuario = await esperarUsuarioLogado();
 
-  const empresaId = sessionStorage.getItem("empresaId");
+  const empresaId = await obterEmpresaId(auth.currentUser);
 
   if (!empresaId) {
     throw new Error("empresaId não encontrado na sessão.");
@@ -636,7 +680,7 @@ window.buscarHistoricoDiarioFirebase = async function () {
 
             tempo: dia.tempoTotal || "00:00",
 
-            eficiencia: 98,
+            eficiencia: null,
 
             status: "Concluído",
 
@@ -707,7 +751,7 @@ window.buscarHistoricoDiarioFirebase = async function () {
 
         tempo: dia.tempoTotal || "00:00",
 
-        eficiencia: 98,
+        eficiencia: null,
 
         status: "Concluído",
 
@@ -724,7 +768,7 @@ SALVAR HISTÓRICO DE PRODUÇÃO
 window.salvarHistoricoProducaoFirebase = async function (dadosExecucao) {
   const usuario = await esperarUsuarioLogado();
 
-  const empresaId = sessionStorage.getItem("empresaId");
+  const empresaId = await obterEmpresaId(auth.currentUser);
 
   if (!empresaId) {
     throw new Error("empresaId não encontrado na sessão.");
@@ -763,7 +807,10 @@ window.salvarHistoricoProducaoFirebase = async function (dadosExecucao) {
     `usuarios/${usuario.uid}/historicoProducao`,
   );
 
-  const registroAntigo = push(historicoAntigoRef);
+  if (dadosExecucao.producaoId) validarChavePrograma(dadosExecucao.producaoId);
+  const registroAntigo = dadosExecucao.producaoId
+    ? ref(db, `usuarios/${usuario.uid}/historicoProducao/${dadosExecucao.producaoId}`)
+    : push(historicoAntigoRef);
 
   await set(registroAntigo, dadosHistorico);
 
@@ -777,7 +824,9 @@ window.salvarHistoricoProducaoFirebase = async function (dadosExecucao) {
     `empresas/${empresaId}/historicoProducao`,
   );
 
-  const registroEmpresa = push(historicoEmpresaRef);
+  const registroEmpresa = dadosExecucao.producaoId
+    ? ref(db, `empresas/${empresaId}/historicoProducao/${dadosExecucao.producaoId}`)
+    : push(historicoEmpresaRef);
 
   await set(registroEmpresa, dadosHistorico);
 };
@@ -789,7 +838,7 @@ BUSCAR HISTÓRICO DE PRODUÇÃO
 window.buscarHistoricoProducaoFirebase = async function () {
   const usuario = await esperarUsuarioLogado();
 
-  const empresaId = sessionStorage.getItem("empresaId");
+  const empresaId = await obterEmpresaId(auth.currentUser);
 
   if (!empresaId) {
     throw new Error("empresaId não encontrado na sessão.");
@@ -851,11 +900,7 @@ PRODUÇÃO ATUAL
 window.salvarProducaoAtualFirebase = async function (dados) {
   const usuario = await esperarUsuarioLogado();
 
-  const empresaId = sessionStorage.getItem("empresaId");
-
-  if (!empresaId) {
-    throw new Error("empresaId não encontrado na sessão.");
-  }
+  const empresaId = await obterEmpresaId(usuario);
 
   const operadorNome =
     sessionStorage.getItem("nomeUsuario") ||
@@ -886,15 +931,15 @@ window.salvarProducaoAtualFirebase = async function (dados) {
   Mantemos temporariamente para
   não quebrar as telas existentes.
   */
-  await set(ref(db, `usuarios/${usuario.uid}/producaoAtual`), dadosProducao);
+  await update(ref(db), {
+    [`usuarios/${usuario.uid}/producaoAtual`]: dadosProducao,
+    [`empresas/${empresaId}/producaoAtual/${usuario.uid}`]: dadosProducao,
+  });
 
   /*
   Nova estrutura multiempresa.
   */
-  await set(
-    ref(db, `empresas/${empresaId}/producaoAtual/${usuario.uid}`),
-    dadosProducao,
-  );
+
 };
 
 /* ==========================
@@ -904,11 +949,7 @@ BUSCAR PRODUÇÃO ATUAL
 window.buscarProducaoAtualFirebase = async function () {
   const usuario = await esperarUsuarioLogado();
 
-  const empresaId = sessionStorage.getItem("empresaId");
-
-  if (!empresaId) {
-    throw new Error("empresaId não encontrado na sessão.");
-  }
+  const empresaId = await obterEmpresaId(usuario);
 
   /*
   Primeiro tenta buscar na
@@ -938,9 +979,9 @@ window.buscarProducaoAtualFirebase = async function () {
 };
 
 async function validarOperadorParaConsultaAdmin(operadorUid) {
-  await esperarUsuarioLogado();
+  const usuario = await esperarUsuarioLogado();
 
-  const empresaId = sessionStorage.getItem("empresaId");
+  const empresaId = await obterEmpresaId(usuario);
   const tipoUsuario = sessionStorage.getItem("tipoUsuario");
   const uid = String(operadorUid || "").trim();
 
@@ -964,7 +1005,7 @@ async function validarOperadorParaConsultaAdmin(operadorUid) {
 
   const operador = snapshotOperador.val();
 
-  if (operador.tipoUsuario !== "operador") {
+  if (operador.tipoUsuario !== "operador" && uid !== usuario.uid) {
     throw new Error("O usuário selecionado não é um operador.");
   }
 
@@ -1015,7 +1056,7 @@ REMOVER PRODUÇÃO ATUAL
 window.removerProducaoAtualFirebase = async function () {
   const usuario = await esperarUsuarioLogado();
 
-  const empresaId = sessionStorage.getItem("empresaId");
+  const empresaId = await obterEmpresaId(auth.currentUser);
 
   if (!empresaId) {
     throw new Error("empresaId não encontrado na sessão.");
@@ -1031,7 +1072,7 @@ window.removerProducaoAtualFirebase = async function () {
 window.cancelarProducaoAtualFirebase = async function () {
   const usuario = await esperarUsuarioLogado();
 
-  const empresaId = sessionStorage.getItem("empresaId");
+  const empresaId = await obterEmpresaId(auth.currentUser);
 
   if (!empresaId) {
     throw new Error("empresaId não encontrado na sessão.");
@@ -1204,11 +1245,7 @@ EM TEMPO REAL
 window.observarProducaoAtualFirebase = async function (callback) {
   const usuario = await esperarUsuarioLogado();
 
-  const empresaId = sessionStorage.getItem("empresaId");
-
-  if (!empresaId) {
-    throw new Error("empresaId não encontrado na sessão.");
-  }
+  const empresaId = await obterEmpresaId(usuario);
 
   /*
   Observa a nova estrutura

@@ -1,0 +1,9 @@
+{
+  "files": 56,
+  "scripts": 22,
+  "localReferences": 95,
+  "result": "PASS",
+  "secretScan": "patterns only; Firebase public config is expected"
+}
+
+Stale-file cleanup: PASS

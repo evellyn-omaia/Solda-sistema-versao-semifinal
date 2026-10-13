@@ -1,0 +1,230 @@
+[
+  {
+    "file": ".nojekyll",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "file": "alarmes/index.html",
+    "sha256": "4abb7155d7196866fc6643f8361a3e32d57ec29228d80f8cd6f185600fa7c81c"
+  },
+  {
+    "file": "assets/models/montagem_victor_final.glb",
+    "sha256": "666c6e6a6760da8b9fab35d1f24354b6bebfbb9515b0d10fec68da5be84d9396"
+  },
+  {
+    "file": "carregar-programa/carregarprograma.css",
+    "sha256": "d2693cf9d96c5976aca43bcb74760783a60f0428854a40faba94b2cddd927961"
+  },
+  {
+    "file": "carregar-programa/carregarprograma.html",
+    "sha256": "cf3ea4dc35c4f7d40eff80380a8be7e311aead772f23e087e3ab1f1ef0206f2a"
+  },
+  {
+    "file": "carregar-programa/carregarprograma.js",
+    "sha256": "0a500f66a37d21402e1f64edbdf62c963827d14d1dfe8149b0a863bfcfab2837"
+  },
+  {
+    "file": "configuracoes/index.html",
+    "sha256": "f25b796a7b72e9b16a4afbdf2e41af4c9cd2f9a1b5073cb70aa8940ce6f67837"
+  },
+  {
+    "file": "images/carregarprograma.png",
+    "sha256": "faa612f5de237f979df64f21e591b7fd64cd3085587070fb145568721d1832b8"
+  },
+  {
+    "file": "images/configuracoes.png",
+    "sha256": "b7c87a343f816b72fcbd890b894bfe7d6283a9102022f87dd53d893ad70eee9e"
+  },
+  {
+    "file": "images/iniciarproducao.png",
+    "sha256": "44ec4ef3485ff989c4f59fa0ba7102759ad590450ddd9acd2dc5ef638da6a5c2"
+  },
+  {
+    "file": "images/logosoldatech.svg",
+    "sha256": "e6100beb2e1d7437f3de5ff3cf835bade95a0ffbcdde6e8ff9a285daeebb67c0"
+  },
+  {
+    "file": "images/modoensino.png",
+    "sha256": "22dd95846c63988efb3ef3c6624c24b3c70b1b76dc64e7c3fa319a5f50d63d6f"
+  },
+  {
+    "file": "images/Novoprograma (2).png",
+    "sha256": "c08441d5bdd6afce8f6984e46f3e7b6d981d3276cbfe221d3d33657bcb0ca9fc"
+  },
+  {
+    "file": "images/paineldeproducao.png",
+    "sha256": "490bada15989f07f9639577d0dad602059a3be2f6ad67c9b4f9d5a03d58b2dc8"
+  },
+  {
+    "file": "images/SENAI_logo_2024.png",
+    "sha256": "c967f2c82bfceee26baf9ad3089a0017d29fa1380084ffdec7e1a3ae93928e3a"
+  },
+  {
+    "file": "index.html",
+    "sha256": "97ba6c449db4baffbd67fc3b4d2a1aaefd6373ab644e219e4d5b2c836e050ab7"
+  },
+  {
+    "file": "iniciar-producao/iniciarproducao.css",
+    "sha256": "8c4e46bf6c69029dc70634214bbd744b169ab88a6675e3abf0caee8ecaa9e473"
+  },
+  {
+    "file": "iniciar-producao/iniciarproducao.html",
+    "sha256": "d78a430533896cd1c8cf49e0a6a63a92f27e4af7916540f2e0d4dc4be3601a4c"
+  },
+  {
+    "file": "iniciar-producao/iniciarproducao.js",
+    "sha256": "70705834132533d7d20f18cf6dfda06d1c04523ba2223c7f92261b28746a6c1b"
+  },
+  {
+    "file": "modo-ensino/modoensino.css",
+    "sha256": "906dcc5ec7985731a5cbec38eac2a0544dd63a42c38d16c17bda08a7bf5429b6"
+  },
+  {
+    "file": "modo-ensino/modoensino.html",
+    "sha256": "b363ff4696dfb346dfef15d483520cd7fc90892576bdcd3cd293ad3bb34e14c2"
+  },
+  {
+    "file": "modo-ensino/modoensino.js",
+    "sha256": "9025c4efab2fb88a8847a329fcccefa5721821a5b7fbf3fb8fdc4cc1e8a3b70d"
+  },
+  {
+    "file": "new-program/camera.css",
+    "sha256": "bd92644b3e960a63b3de851069074c6f6c6de42a8dfd91efebdbb1a474c181ec"
+  },
+  {
+    "file": "new-program/camera.html",
+    "sha256": "c27bffd7470746d0ab5fb13e54421dac19b9c2130adacf42b34ff102c155c87b"
+  },
+  {
+    "file": "new-program/camera.js",
+    "sha256": "340e963d08eb6d3e685932557b8ed5bdf08b4e2a40ae34065648c083bd716394"
+  },
+  {
+    "file": "new-program/esp32-teste.js",
+    "sha256": "7582603451adc0644a7cc23bae562f1ca044f289e78b90f8d223322fc3b8d34d"
+  },
+  {
+    "file": "new-program/firebase-loader.js",
+    "sha256": "37eb000e502eb0b99c018b5cb163b714e3abf943b207b59283804587d4ad5ce1"
+  },
+  {
+    "file": "new-program/firebase-programas.js",
+    "sha256": "1982699359f315bbf03bbbaf3f3332ff3892ec15b8c6b6a8e8141506a416c03a"
+  },
+  {
+    "file": "new-program/mqtt-config.js",
+    "sha256": "0a499527ad50c775296da1786c52ff5e2a93cdf8415242989bfac174bab54a36"
+  },
+  {
+    "file": "new-program/mqtt-maquina.js",
+    "sha256": "624b9488836dff7b358646a4d09437b973ae59af5cb04c5ad5ebdd766b373335"
+  },
+  {
+    "file": "new-program/novoprograma.css",
+    "sha256": "305a436540642c287995016022425ab98425a244559d8a8a1cc289415dc811b6"
+  },
+  {
+    "file": "new-program/novoprograma.html",
+    "sha256": "a8c0d105815c586da4bca6288e0d98a7c49209c32a35892108ddacf502609df3"
+  },
+  {
+    "file": "new-program/novoprograma.js",
+    "sha256": "b78eea5138cc501c2d34b5ec0205e959bc319aba1eb02c1ebd9f6e5fcb4e4d3c"
+  },
+  {
+    "file": "new-program/simulacao-integrada.mjs",
+    "sha256": "2f9062bc8be391f6a172505161352c7fa75d419d574835bf85981566b4fc2c13"
+  },
+  {
+    "file": "new-program/visao-camera.mjs",
+    "sha256": "787a9b6d9a50056e0fab12ad1804f7b469b315ed204be99ff05ba8c1683d3a24"
+  },
+  {
+    "file": "new-program/visao-core.mjs",
+    "sha256": "253ea08e92d75df17d0e8f26ab8c4a0cfe7695e341c6bfea359cf468d443a89e"
+  },
+  {
+    "file": "new-program/visao-identidade.js",
+    "sha256": "56b97bbe6ba5c357014da3e2d9a8bb8e04e111f9d888b3479765024549b5fb92"
+  },
+  {
+    "file": "painel-producao/painelproducao.css",
+    "sha256": "6b95a04b400eb0560e06ff3ade43ef69ead9f201fb4b0cd87c61a2906b5bfe3e"
+  },
+  {
+    "file": "painel-producao/painelproducao.html",
+    "sha256": "b0855c8f84a53c27393ee1c9977972ea93cb8008bbeec720cedfe28dd5b0d627"
+  },
+  {
+    "file": "painel-producao/painelproducao.js",
+    "sha256": "5fb6407745d1818ba591674e4181e01eec76708c302359c72d5017fd9595bc15"
+  },
+  {
+    "file": "release.json",
+    "sha256": "e33c72eb8e44c95d920dd0d157b2c4669c863412f49bf98efa83506ad7ea93d7"
+  },
+  {
+    "file": "shared/navigation.js",
+    "sha256": "06535e65c8c6c62b5118d62a2f322060ba06ac3ee91e133fd0686da4f07a5301"
+  },
+  {
+    "file": "shared-responsive.css",
+    "sha256": "2f4a1d4c9b63c0bf71f0bcd53c139097fceacf448b73cdb5ee57c9f1581f3a4a"
+  },
+  {
+    "file": "solda-login/criarconta.css",
+    "sha256": "1688accbb510d25442af079a6dab5412981097a766c8cc68d52846d7681ec3de"
+  },
+  {
+    "file": "solda-login/criarConta.html",
+    "sha256": "797053e4230ddb0e59472d3cda8176ac46b1aeaef1e0f473a7f3fef2a9ea8a7c"
+  },
+  {
+    "file": "solda-login/criarConta.js",
+    "sha256": "fcc62f42ae96f09e82130ca2f7ddcd9852bab3d5f35147e1b3257f141ed17667"
+  },
+  {
+    "file": "solda-login/firebase.js",
+    "sha256": "a00d88708fdfe5a133b990a34a4e1b1f76de27651792a0f0b8db98fb273ce08d"
+  },
+  {
+    "file": "solda-login/login.css",
+    "sha256": "b4cce1e5a065809cea8fcee9e8cceab81cfe7633db2dd19ec93e7bd25814bea8"
+  },
+  {
+    "file": "solda-login/login.html",
+    "sha256": "f4f5607ae8f5f801d818c492e3c0ba25c00b95faced5753ffe0fd37b1e826551"
+  },
+  {
+    "file": "solda-login/login.js",
+    "sha256": "017fbafbecc61acaf91d33a25b1e2d920b0c1a136223908032ea6428abe304c6"
+  },
+  {
+    "file": "solda-system/firebaseConfig.js",
+    "sha256": "faebff1365ecd3c2043d80881a712129acd44a46ee7a03020ca1aacc59464e28"
+  },
+  {
+    "file": "solda-system/index.html",
+    "sha256": "a6fd6d8524be72c78171babf2b072665066b418b149a25c344ddbb49f3130616"
+  },
+  {
+    "file": "solda-system/operadores.css",
+    "sha256": "ceeadbe967a2e933d945e46fcd4471ab8daabc4cfe5acdef488c5385fbb41b99"
+  },
+  {
+    "file": "solda-system/operadores.html",
+    "sha256": "d7577ccc4eb9f7152c8e99f49a93d6c97ec0bd2257ff59f0f54ce55197c9eace"
+  },
+  {
+    "file": "solda-system/operadores.js",
+    "sha256": "bc44fb1d6dd344fd438d318d21e0dc19d65f5831e96cc259133bb29876d33301"
+  },
+  {
+    "file": "solda-system/script.js",
+    "sha256": "258fc1f16d177574d2b9c50e0485a2c47cd006ab143e8b4532313634ebd5bc81"
+  },
+  {
+    "file": "solda-system/style.css",
+    "sha256": "563dffedc63c703fd0918bbad59f8e920b8524becaaf3ce1b69e16ddcfee93d0"
+  }
+]

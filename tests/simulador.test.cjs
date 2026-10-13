@@ -1,0 +1,27 @@
+const test = require('node:test');
+const assert = require('node:assert/strict');
+const { once } = require('node:events');
+const Modbus = require('modbus-serial');
+const { criarSimulador } = require('../scripts/simulador.cjs');
+test('servidor Modbus TCP real: coils, status, mapa inválido e reconexão', async t => {
+  const probe = require('node:net').createServer();
+  await new Promise(r => probe.listen(0, '127.0.0.1', r));
+  const port = probe.address().port;
+  await new Promise(r => probe.close(r));
+  let sim = criarSimulador(port);
+  await once(sim.server._server, 'listening');
+  const client = new Modbus(); client.setTimeout(500); client.setID(1);
+  t.after(() => { client.close(); sim.close(); });
+  await client.connectTCP('127.0.0.1', { port });
+  assert.equal((await client.readDiscreteInputs(301, 5)).data[0], false);
+  await client.writeCoil(103, true);
+  assert.equal((await client.readDiscreteInputs(301, 5)).data[0], true);
+  await assert.rejects(client.writeCoil(999, true));
+  await client.writeCoil(103, false);
+  assert.equal((await client.readDiscreteInputs(301, 5)).data[0], false);
+  sim.close(); await new Promise(resolve => setTimeout(resolve, 100));
+  await assert.rejects(client.readDiscreteInputs(301, 5));
+  sim = criarSimulador(port); await once(sim.server._server, 'listening');
+  await client.connectTCP('127.0.0.1', { port });
+  assert.equal((await client.readDiscreteInputs(301, 5)).data[0], false);
+});

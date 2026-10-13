@@ -328,6 +328,11 @@ MODO DE REPRODUÇÃO (SEQUENCIAL/SINGULAR)
       </div>
 
       <div class="painel-conexao__linha">
+        <span>Node-RED</span>
+        <strong id="statusNodeRed" class="conexao-status conexao-status--offline">SEM CONFIRMAÇÃO</strong>
+      </div>
+
+      <div class="painel-conexao__linha">
         <span>CLP</span>
         <strong id="statusClp" class="conexao-status conexao-status--indisponivel">
           INDISPONÍVEL
@@ -352,11 +357,15 @@ MODO DE REPRODUÇÃO (SEQUENCIAL/SINGULAR)
 
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/DRACOLoader.js"></script>
 
+    <script src="./firebase-loader.js"></script>
     <script type="module" src="./firebase-programas.js"></script>
   
-    <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+    <script src="https://unpkg.com/mqtt@5.16.0/dist/mqtt.min.js"></script>
+    <script src="mqtt-config.js"></script>
 <script src="mqtt-maquina.js"></script>
 
     <script defer src="./novoprograma.js"></script>
-  </body>
+    <script type="module" src="./simulacao-integrada.mjs"></script>
+  <script src="../shared/navigation.js" defer></script>
+</body>
 </html>

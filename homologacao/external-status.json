@@ -1,0 +1,97 @@
+{
+  "checkedAt": "2026-10-13T08:40:36.760Z",
+  "requests": [
+    {
+      "url": "https://api.github.com/repos/esterv-dev/Solda-sistema-versao-semifinal",
+      "status": 200,
+      "data": {
+        "default_branch": "main",
+        "permissions": {
+          "admin": false,
+          "maintain": false,
+          "push": false,
+          "triage": false,
+          "pull": true
+        }
+      }
+    },
+    {
+      "url": "https://api.github.com/repos/esterv-dev/Solda-sistema-versao-semifinal/pages",
+      "status": 200,
+      "data": {
+        "html_url": "https://esterv-dev.github.io/Solda-sistema-versao-semifinal/",
+        "build_type": "legacy",
+        "source": {
+          "branch": "main",
+          "path": "/"
+        },
+        "status": "built"
+      }
+    },
+    {
+      "url": "https://api.github.com/repos/esterv-dev/Solda-sistema-versao-semifinal/actions/workflows",
+      "status": 200,
+      "data": {
+        "total_count": 1,
+        "workflows": [
+          {
+            "id": 308725869,
+            "node_id": "W_kwDOTQgH0M4SZsht",
+            "name": "pages-build-deployment",
+            "path": "dynamic/pages/pages-build-deployment",
+            "state": "active",
+            "created_at": "2026-07-07T10:30:00.000-03:00",
+            "updated_at": "2026-07-07T10:30:00.000-03:00",
+            "url": "https://api.github.com/repos/esterv-dev/Solda-sistema-versao-semifinal/actions/workflows/308725869",
+            "html_url": "https://github.com/esterv-dev/Solda-sistema-versao-semifinal/actions/workflows/pages/pages-build-deployment",
+            "badge_url": "https://github.com/esterv-dev/Solda-sistema-versao-semifinal/actions/workflows/pages/pages-build-deployment/badge.svg"
+          }
+        ]
+      }
+    },
+    {
+      "url": "https://esterv-dev.github.io/Solda-sistema-versao-semifinal/",
+      "status": 200,
+      "contentType": "text/html; charset=utf-8"
+    },
+    {
+      "url": "https://esterv-dev.github.io/Solda-sistema-versao-semifinal/new-program/novoprograma.html",
+      "status": 200,
+      "contentType": "text/html; charset=utf-8"
+    },
+    {
+      "url": "https://esterv-dev.github.io/Solda-sistema-versao-semifinal/new-program/camera.html",
+      "status": 404,
+      "contentType": "text/html; charset=utf-8"
+    },
+    {
+      "url": "https://esterv-dev.github.io/Solda-sistema-versao-semifinal/new-program/simulacao-integrada.mjs",
+      "status": 404,
+      "contentType": "text/html; charset=utf-8"
+    },
+    {
+      "url": "https://esterv-dev.github.io/Solda-sistema-versao-semifinal/assets/models/montagem_victor_final.glb",
+      "status": 200,
+      "contentType": "model/gltf-binary"
+    },
+    {
+      "url": "https://esterv-dev.github.io/Solda-sistema-versao-semifinal/node-red/flows.json",
+      "status": 404,
+      "contentType": "text/html; charset=utf-8"
+    },
+    {
+      "url": "https://esterv-dev.github.io/Solda-sistema-versao-semifinal/mqtt-broker/server.js",
+      "status": 404,
+      "contentType": "text/html; charset=utf-8"
+    },
+    {
+      "url": "https://esterv-dev.github.io/Solda-sistema-versao-semifinal/database-rules.json",
+      "status": 200,
+      "contentType": "application/json; charset=utf-8"
+    }
+  ],
+  "firebaseUnauthenticated": {
+    "status": 401,
+    "denied": true
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "pages": [
+    {
+      "requested": "",
+      "url": "https://esterv-dev.github.io/Solda-sistema-versao-semifinal/solda-login/login.html",
+      "status": 200,
+      "title": "Solda",
+      "errors": [],
+      "failed": [],
+      "canvas": 0
+    },
+    {
+      "requested": "new-program/novoprograma.html",
+      "url": "https://esterv-dev.github.io/Solda-sistema-versao-semifinal/new-program/novoprograma.html",
+      "status": 200,
+      "title": "SoldaTech | Modelo Real 3D",
+      "errors": [],
+      "failed": [],
+      "canvas": 1
+    }
+  ],
+  "blockedSockets": [
+    "wss://0c8e76fe2d694a2e963905f30e8ab299.s1.eu.hivemq.cloud:8884/mqtt",
+    "wss://0c8e76fe2d694a2e963905f30e8ab299.s1.eu.hivemq.cloud:8884/mqtt",
+    "wss://0c8e76fe2d694a2e963905f30e8ab299.s1.eu.hivemq.cloud:8884/mqtt"
+  ]
+}

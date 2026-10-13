@@ -1,0 +1,15 @@
+{
+  "scope": "tracked and untracked nonignored text files; heuristic scan requires review",
+  "findings": [
+    {
+      "file": "tests/broker-matrix.test.cjs",
+      "line": 31,
+      "kind": "literal-secret"
+    },
+    {
+      "file": "tests/test_visao.py",
+      "line": 33,
+      "kind": "literal-secret"
+    }
+  ]
+}

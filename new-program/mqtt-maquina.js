@@ -4,6 +4,7 @@ MQTT - SOLDATECH
 =====================================
 */
 
+
 /*
 Broker MQTT local (ver pasta mqtt-broker/
 na raiz do projeto). Roda no mesmo PC do
@@ -14,19 +15,21 @@ tablet na mesma rede (não o PC onde o
 broker está rodando), troque "localhost"
 pelo IP desse PC na rede local.
 */
-const MQTT_BROKER = "ws://localhost:8888";
+// Pode ser definido antes deste script pelo ambiente de implantação.
+const MQTT_CONFIG = window.SoldaTechMQTTConfig || {};
+const MQTT_HOST = window.location?.hostname || "localhost";
+const MQTT_BROKER = MQTT_CONFIG.url || (window.location?.protocol === "https:" ? null : `ws://${MQTT_HOST}:8888`);
 
-const MQTT_TOPICO_COMANDO =
-  "soldatech/maquina/comando";
 
-const MQTT_TOPICO_STATUS =
-  "soldatech/maquina/status";
+const MQTT_TOPICO_COMANDO = "soldatech/maquina/comando";
 
-  const MQTT_TOPICO_RESPOSTA =
-  "soldatech/maquina/resposta";
+const MQTT_TOPICO_STATUS = "soldatech/maquina/status";
 
-const MQTT_TOPICO_ERRO =
-  "soldatech/maquina/erro";
+const MQTT_TOPICO_RESPOSTA = "soldatech/maquina/resposta";
+
+const MQTT_TOPICO_ERRO = "soldatech/maquina/erro";
+
+const MQTT_TOPICO_VISAO = "soldatech/visao/gesto";
 
 let mqttCliente = null;
 let mqttConectado = false;
@@ -34,9 +37,25 @@ const CLP_TIMEOUT_MS = 10000;
 const MQTT_COMMAND_TIMEOUT_MS = 8000;
 const INTERVALO_ATUALIZACAO_STATUS_MS = 1000;
 let ultimoContatoClp = null;
+let ultimoContatoNodeRed = null;
+let ultimoTimestampStatus = null;
 let ultimaMensagemClp = null;
 let ultimoEstadoDeclaradoClp = null;
 let ultimoEstadoVisualClp = null;
+let clpSimulacao = false;
+let ultimoStatusSeguro = null;
+const COMANDOS_ATIVACAO = new Set([
+  "JOG_CIMA", "JOG_BAIXO", "JOG_PULSO", "MESA_START", "SOLDA_ON", "MOVER_PONTO",
+]);
+
+function permiteAtivacao(comando) {
+  comando = String(comando || "").trim().toUpperCase();
+  if (!COMANDOS_ATIVACAO.has(comando)) return true;
+  const status = ultimoStatusSeguro;
+  if (!mqttConectado || !status || Date.now() - status.recebidoEm > CLP_TIMEOUT_MS) return false;
+  if (status.emergencia || !["PRONTA", "PARADA", "EXECUTANDO"].includes(status.estado)) return false;
+  return !comando.startsWith("JOG_") || status.estado !== "EXECUTANDO";
+}
 
 const comandosPendentes = new Map();
 const eventosMaquina = new EventTarget();
@@ -119,7 +138,7 @@ function obterEstadoClp() {
 
   if (Date.now() - ultimoContatoClp <= CLP_TIMEOUT_MS) {
     return {
-      texto: "CONECTADO",
+      texto: clpSimulacao ? "SIMULA\u00c7\u00c3O" : "CONECTADO",
       modificador: "conectado",
       mostrarPonto: true,
     };
@@ -153,6 +172,9 @@ function atualizarStatusMaquinaReal(estadoClp) {
 
 function atualizarStatusConexao() {
   const statusMqtt = document.getElementById("statusMqtt");
+  const statusNodeRed = document.getElementById("statusNodeRed");
+  const ponteRecente = mqttConectado && ultimoContatoNodeRed !== null && Date.now() - ultimoContatoNodeRed <= CLP_TIMEOUT_MS;
+  atualizarElementoStatus(statusNodeRed, ponteRecente ? "ONLINE" : "SEM CONFIRMAÇÃO", ponteRecente ? "online" : "offline", true);
   const statusClp = document.getElementById("statusClp");
   const ultimoContato = document.getElementById("ultimoContatoClp");
   const estadoClp = obterEstadoClp();
@@ -197,10 +219,7 @@ function extrairEstadoDeclaradoClp(mensagem) {
     const dados =
       typeof mensagem === "string" ? JSON.parse(mensagem) : mensagem;
     const estado =
-      dados?.estado ??
-      dados?.clp ??
-      dados?.status ??
-      dados?.dados?.estado;
+      dados?.estado ?? dados?.clp ?? dados?.status ?? dados?.dados?.estado;
 
     return typeof estado === "string" ? estado.toUpperCase() : null;
   } catch {
@@ -216,6 +235,29 @@ function registrarContatoClp(topico, mensagemProcessada) {
     return;
   }
 
+  // Texto legado e confirmações de comando não autorizam movimento.
+  if (mensagemProcessada.formato !== "json") return;
+  ultimoContatoNodeRed = Date.now();
+  // PING/COMANDO_OK comprovam somente a ponte, nunca a leitura física.
+  if (topico !== MQTT_TOPICO_STATUS) { atualizarStatusConexao(); return; }
+  const statusRecebido = mensagemProcessada.dados;
+  clpSimulacao = statusRecebido.simulacao === true;
+  if (statusRecebido.clpConectado === false) {
+    ultimoContatoClp = null;
+    ultimoStatusSeguro = null;
+    ultimoEstadoDeclaradoClp = null;
+    atualizarStatusConexao();
+    return;
+  }
+  if (!extrairEstadoDeclaradoClp(statusRecebido)) return;
+  if (topico === MQTT_TOPICO_STATUS) {
+    const dados = mensagemProcessada.dados;
+    ultimoStatusSeguro = {
+      recebidoEm: Date.now(),
+      estado: extrairEstadoDeclaradoClp(dados),
+      emergencia: dados.emergencia === true,
+    };
+  }
   ultimoContatoClp = Date.now();
   const estadoDeclarado = extrairEstadoDeclaradoClp(mensagemProcessada.dados);
 
@@ -398,7 +440,10 @@ function processarResposta(dados, tipo) {
     finalizarComandoPendente(
       idComando,
       "reject",
-      criarErroComando(dados.mensagem || "Comando rejeitado pela máquina.", dados),
+      criarErroComando(
+        dados.mensagem || "Comando rejeitado pela máquina.",
+        dados,
+      ),
     );
     return;
   }
@@ -424,7 +469,9 @@ function processarMensagemMaquina(topico, payload) {
   const categoria = obterCategoriaTopico(topico);
 
   if (!categoria) {
-    console.warn("Mensagem recebida em tópico MQTT não reconhecido.", { topico });
+    console.warn("Mensagem recebida em tópico MQTT não reconhecido.", {
+      topico,
+    });
     return { processado: false, motivo: "topico-desconhecido" };
   }
 
@@ -458,6 +505,15 @@ function processarMensagemMaquina(topico, payload) {
   const dados = mensagemProcessada.dados;
   const tipo = normalizarTipoMensagem(dados, categoria);
 
+  if (categoria === "STATUS" && dados.timestamp !== undefined) {
+    const timestamp = dados.timestamp;
+    if (!Number.isFinite(timestamp) || Date.now() - timestamp > CLP_TIMEOUT_MS ||
+        timestamp > Date.now() + 2000 || (ultimoTimestampStatus !== null && timestamp <= ultimoTimestampStatus)) {
+      return { processado: false, motivo: "status-expirado-ou-fora-de-ordem" };
+    }
+    ultimoTimestampStatus = timestamp;
+  }
+
   registrarContatoClp(topico, mensagemProcessada);
 
   if (categoria === "RESPOSTA") {
@@ -467,10 +523,13 @@ function processarMensagemMaquina(topico, payload) {
   }
 
   if (tipo && !TIPOS_EVENTO_SUPORTADOS.has(tipo)) {
-    console.info("Tipo de evento MQTT ainda não possui tratamento específico.", {
-      tipo,
-      topico,
-    });
+    console.info(
+      "Tipo de evento MQTT ainda não possui tratamento específico.",
+      {
+        tipo,
+        topico,
+      },
+    );
   }
 
   const detalheEvento = {
@@ -506,7 +565,11 @@ function rejeitarComandosPendentes(mensagem, codigo) {
 function marcarMqttDesconectado() {
   const estavaConectado = mqttConectado;
   mqttConectado = false;
+  clpSimulacao = false;
   ultimoContatoClp = null;
+  ultimoContatoNodeRed = null;
+  ultimoTimestampStatus = null;
+  ultimoStatusSeguro = null;
   ultimaMensagemClp = null;
   ultimoEstadoDeclaradoClp = null;
   atualizarStatusConexao();
@@ -520,7 +583,6 @@ function marcarMqttDesconectado() {
   }
 }
 
-
 /*
 =====================================
 CONECTAR AO BROKER
@@ -528,9 +590,16 @@ CONECTAR AO BROKER
 */
 
 function conectarMQTT() {
-
+  if (MQTT_CONFIG.publico) return null;
   if (mqttCliente) {
     return mqttCliente;
+  }
+
+  if (!MQTT_BROKER || !/^wss?:\/\//.test(MQTT_BROKER) ||
+      (window.location?.protocol === "https:" && !MQTT_BROKER.startsWith("wss://"))) {
+    console.error("Configure um endpoint WSS autenticado em SoldaTechMQTTConfig.url para HTTPS.");
+    atualizarStatusConexao();
+    return null;
   }
 
   if (typeof window.mqtt?.connect !== "function") {
@@ -540,42 +609,26 @@ function conectarMQTT() {
   }
 
   const clientId =
-    "soldatech-web-" +
-    Math.random()
-      .toString(16)
-      .substring(2, 10);
+    "soldatech-web-" + Math.random().toString(16).substring(2, 10);
 
+  console.log("Conectando ao MQTT...", {
+    broker: MQTT_BROKER,
 
-  console.log(
-    "Conectando ao MQTT...",
-    {
-      broker:
-        MQTT_BROKER,
+    clientId: clientId,
+  });
 
-      clientId:
-        clientId
-    }
-  );
+  mqttCliente = window.mqtt.connect(MQTT_BROKER, {
+    clientId: clientId,
 
+    ...(MQTT_CONFIG.username ? { username: MQTT_CONFIG.username } : {}),
+    ...(MQTT_CONFIG.password ? { password: MQTT_CONFIG.password } : {}),
+    clean: true,
+    queueQoSZero: false,
+    resubscribe: false,
+    reconnectPeriod: 3000,
+    connectTimeout: 10000,
+  });
 
-mqttCliente =
-  window.mqtt.connect(
-    MQTT_BROKER,
-    {
-      clientId:
-        clientId,
-
-      // Broker local (mqtt-broker/) não exige autenticação.
-      clean:
-        true,
-
-      reconnectPeriod:
-        3000,
-
-      connectTimeout:
-        10000
-    }
-  );
 
   /*
   =============================
@@ -583,57 +636,41 @@ mqttCliente =
   =============================
   */
 
-  mqttCliente.on(
-    "connect",
-    () => {
+  mqttCliente.on("connect", () => {
+    mqttConectado = true;
 
-      mqttConectado =
-        true;
+    atualizarStatusConexao();
 
-      atualizarStatusConexao();
+    emitirEventoMaquina("mqtt-status", { mqttConectado: true });
 
-      emitirEventoMaquina("mqtt-status", { mqttConectado: true });
+    console.log("✅ MQTT conectado ao broker!");
 
-
-      console.log(
-        "✅ MQTT conectado ao broker!"
-      );
-
-
-      /*
+    /*
       Escuta respostas/status.
       */
 
-      mqttCliente.subscribe(
-  [
-    MQTT_TOPICO_STATUS,
-    MQTT_TOPICO_RESPOSTA,
-    MQTT_TOPICO_ERRO
-  ],
-  {
-    qos: 0
-  },
-  erro => {
+    mqttCliente.subscribe(
+      [
+        MQTT_TOPICO_STATUS,
+        MQTT_TOPICO_RESPOSTA,
+        MQTT_TOPICO_ERRO,
+        MQTT_TOPICO_VISAO,
+      ],
+      {
+        qos: 0,
+      },
+      (erro, concedidos) => {
+        if (erro || concedidos?.some((item) => item.qos === 128)) {
+          marcarMqttDesconectado();
+          console.error("Erro ao assinar tópicos MQTT:", erro);
 
-    if (erro) {
+          return;
+        }
 
-      console.error(
-        "Erro ao assinar tópicos MQTT:",
-        erro
-      );
-
-      return;
-    }
-
-
-    console.log(
-      "✅ Inscrito nos tópicos da máquina."
+        console.log("✅ Inscrito nos tópicos da máquina.");
+      },
     );
-  }
-);
-    }
-  );
-
+  });
 
   /*
   =============================
@@ -641,29 +678,45 @@ mqttCliente =
   =============================
   */
 
-  mqttCliente.on(
-    "message",
-    (
-      topico,
-      mensagem
-    ) => {
+  mqttCliente.on("message", (topico, mensagem, pacote = {}) => {
+    // Mensagens retidas representam um estado/gesto anterior à conexão.
+    if (pacote.retain) return;
+    if (topico === MQTT_TOPICO_VISAO) {
+      try {
+        const dados = JSON.parse(mensagem.toString());
 
-      const resultado = processarMensagemMaquina(topico, mensagem);
+        const gesto = dados?.gesto;
+        if (dados.timestamp !== undefined && (!Number.isFinite(dados.timestamp) || Math.abs(Date.now() - dados.timestamp) > 5000)) return;
 
-
-      console.log(
-        "📥 MQTT recebido:",
-        {
-          topico:
-            topico,
-
-          mensagem:
-            resultado
+        if (gesto !== "START" && gesto !== "PAUSA") {
+          console.warn("⚠️ Gesto de visão inválido:", dados);
+          return;
         }
-      );
-    }
-  );
 
+        console.log("👋 [VISÃO] gesto recebido:", gesto);
+
+        window.dispatchEvent(
+          new CustomEvent("soldatech:gesto-visao", {
+            detail: {
+              gesto: gesto,
+            },
+          }),
+        );
+      } catch (erro) {
+        console.error("❌ Erro ao processar mensagem da visão:", erro);
+      }
+
+      return;
+    }
+
+    const resultado = processarMensagemMaquina(topico, mensagem);
+
+    console.log("📥 MQTT recebido:", {
+      topico: topico,
+
+      mensagem: resultado,
+    });
+  });
 
   /*
   =============================
@@ -671,19 +724,14 @@ mqttCliente =
   =============================
   */
 
-  mqttCliente.on(
-    "close",
-    () => {
+  mqttCliente.on("offline", marcarMqttDesconectado);
+  mqttCliente.on("reconnect", marcarMqttDesconectado);
 
-      marcarMqttDesconectado();
+  mqttCliente.on("close", () => {
+    marcarMqttDesconectado();
 
-
-      console.warn(
-        "MQTT desconectado."
-      );
-    }
-  );
-
+    console.warn("MQTT desconectado.");
+  });
 
   /*
   =============================
@@ -691,20 +739,12 @@ mqttCliente =
   =============================
   */
 
-  mqttCliente.on(
-    "error",
-    erro => {
-
-      console.error(
-        "Erro MQTT:",
-        erro
-      );
-    }
-  );
+  mqttCliente.on("error", (erro) => {
+    console.error("Erro MQTT:", erro);
+  });
 
   return mqttCliente;
 }
-
 
 /*
 =====================================
@@ -712,7 +752,11 @@ PUBLICAR COMANDO
 =====================================
 */
 
-function criarEnvelopeComando(comando, dados = {}, idComando = gerarIdComando()) {
+function criarEnvelopeComando(
+  comando,
+  dados = {},
+  idComando = gerarIdComando(),
+) {
   return {
     idComando,
     comando,
@@ -725,6 +769,11 @@ function criarEnvelopeComando(comando, dados = {}, idComando = gerarIdComando())
 function publicarEnvelopeComando(mensagem, aoConcluir) {
   if (!mqttCliente || !mqttConectado) {
     console.warn("MQTT ainda não está conectado.");
+    return false;
+  }
+
+  if (!permiteAtivacao(mensagem.comando)) {
+    aoConcluir?.(criarErroComando("Estado do CLP não permite este comando.", { codigo: "CLP_NAO_PERMITIDO" }));
     return false;
   }
 
@@ -869,24 +918,15 @@ function aguardarEventoMaquina(tipoEsperado, opcoes = {}) {
   });
 }
 
-
 /*
 =====================================
 FUNÇÃO USADA PELA MÁQUINA
 =====================================
 */
 
-window.enviarComandoMaquina =
-  async function(
-    comando,
-    dados = {}
-  ) {
-
-    return publicarMQTT(
-      comando,
-      dados
-    );
-  };
+window.enviarComandoMaquina = async function (comando, dados = {}) {
+  return publicarMQTT(comando, dados);
+};
 
 window.enviarComandoComConfirmacao = enviarComandoComConfirmacao;
 window.aguardarEventoMaquina = aguardarEventoMaquina;
@@ -938,11 +978,13 @@ window.SoldaTouchIntegracaoFisica = Object.freeze({
       throw new TypeError("A direção deve ser CIMA ou BAIXO.");
     }
 
-    if (!adaptadoresIntegracaoFutura.movimentoManual) {
+    if (!adaptadoresIntegracaoFutura.movimentoManual || !permiteAtivacao("JOG_CIMA")) {
       return false;
     }
 
-    return adaptadoresIntegracaoFutura.movimentoManual.iniciar(direcaoNormalizada);
+    return adaptadoresIntegracaoFutura.movimentoManual.iniciar(
+      direcaoNormalizada,
+    );
   },
 
   pararMovimentoManual() {
@@ -954,7 +996,7 @@ window.SoldaTouchIntegracaoFisica = Object.freeze({
   },
 
   definirSoldagemAtiva(ativa, contexto = {}) {
-    if (!adaptadoresIntegracaoFutura.soldagem) {
+    if (!adaptadoresIntegracaoFutura.soldagem || (ativa && !permiteAtivacao("SOLDA_ON"))) {
       return false;
     }
 
@@ -966,12 +1008,11 @@ window.SoldaTouchIntegracaoFisica = Object.freeze({
 
   obterCapacidades() {
     return {
-      movimentoManual: Boolean(adaptadoresIntegracaoFutura.movimentoManual),
-      soldagem: Boolean(adaptadoresIntegracaoFutura.soldagem),
+      movimentoManual: Boolean(adaptadoresIntegracaoFutura.movimentoManual) && permiteAtivacao("JOG_CIMA"),
+      soldagem: Boolean(adaptadoresIntegracaoFutura.soldagem) && permiteAtivacao("SOLDA_ON"),
     };
   },
 });
-
 
 /*
 =====================================
@@ -1016,39 +1057,36 @@ FUNÇÕES PARA TESTE
 =====================================
 */
 
-window.testarMQTT =
-  function() {
+window.publicarGestoVisao = function (gesto) {
+  if (!mqttConectado || !clpSimulacao || !["START", "PAUSA"].includes(gesto)) return false;
+  mqttCliente.publish(MQTT_TOPICO_VISAO, JSON.stringify({ gesto, simulacao: true, timestamp: Date.now() }),
+    { qos: 0, retain: false });
+  return true;
+};
 
-    return publicarMQTT(
-      "TESTE",
-      {
-        mensagem:
-          "Olá do SoldaTech"
-      }
-    );
+window.testarMQTT = function () {
+  return publicarMQTT("PING", {
+    mensagem: "Olá do SoldaTech",
+  });
+};
+
+window.mqttEstaConectado = function () {
+  return mqttConectado;
+};
+
+window.obterEstadoConexaoMaquina = function () {
+  return {
+    mqttConectado,
+    simulacao: clpSimulacao,
+    nodeRed: ultimoContatoNodeRed !== null && Date.now() - ultimoContatoNodeRed <= CLP_TIMEOUT_MS ? "CONECTADO" : "SEM CONFIRMAÇÃO",
+    clp: obterEstadoClp().texto,
+    ultimoContatoClp,
+    ultimaMensagemClp,
+    timeoutClpMs: CLP_TIMEOUT_MS,
+    timeoutComandoMs: MQTT_COMMAND_TIMEOUT_MS,
+    comandosPendentes: comandosPendentes.size,
   };
-
-
-window.mqttEstaConectado =
-  function() {
-
-    return mqttConectado;
-  };
-
-
-window.obterEstadoConexaoMaquina =
-  function() {
-
-    return {
-      mqttConectado,
-      clp: obterEstadoClp().texto,
-      ultimoContatoClp,
-      ultimaMensagemClp,
-      timeoutClpMs: CLP_TIMEOUT_MS,
-      timeoutComandoMs: MQTT_COMMAND_TIMEOUT_MS,
-      comandosPendentes: comandosPendentes.size,
-    };
-  };
+};
 
 window.SoldaTouchMQTT = Object.freeze({
   gerarIdComando,
@@ -1068,7 +1106,6 @@ window.SoldaTouchMQTT = Object.freeze({
   timeoutComandoMs: MQTT_COMMAND_TIMEOUT_MS,
 });
 
-
 /*
 =====================================
 INICIAR
@@ -1076,11 +1113,11 @@ INICIAR
 */
 
 atualizarStatusConexao();
-conectarMQTT();
+if (!window.SoldaTechMQTTConfig?.publico) conectarMQTT();
 
 const intervaloStatusConexao = window.setInterval(
   atualizarStatusConexao,
-  INTERVALO_ATUALIZACAO_STATUS_MS
+  INTERVALO_ATUALIZACAO_STATUS_MS,
 );
 
 window.addEventListener("pagehide", () => {

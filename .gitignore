@@ -1,2 +1,25 @@
+# Ambiente virtual Python
+.venv/
+venv/
+
+# Cache do Python
+__pycache__/
+*.pyc
+
+# Arquivos com credenciais
+.env
+.env.*
+!.env.example
+
+# Dependências Node.js
 node_modules/
+
+# Arquivos do Claude
 .claude/
+
+# Arquivos temporários
+*.log
+# Sessao local e tokens temporarios
+.soldatech/
+
+dist-pages/
