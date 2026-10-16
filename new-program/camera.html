@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="referrer" content="same-origin">
+  <title>Visão Computacional • SoldaTouch</title>
+  <link rel="stylesheet" href="./camera.css">
+</head>
+<body>
+  <main>
+    <header>
+      <a id="voltar" class="botao voltar" href="../iniciar-producao/iniciarproducao.html" aria-label="Voltar à configuração da produção">← Voltar</a>
+      <div><p class="marca">SoldaTouch</p><h1>Visão Computacional</h1></div>
+    </header>
+    <p class="aviso"><strong>Modo demonstração</strong> · Nenhum movimento real. A produção física por gesto está bloqueada até homologação.</p>
+    <section class="painel" aria-labelledby="configuracao">
+      <h2 id="configuracao">Sua produção</h2>
+      <ul id="programas"><li>Validando configuração...</li></ul>
+      <dl>
+        <div><dt>Quantidade total</dt><dd id="quantidade">—</dd></div>
+        <div><dt>Estado da produção</dt><dd id="producao">Não iniciada</dd></div>
+        <div><dt>Produzidas / progresso</dt><dd>Indisponível em demonstração</dd></div>
+        <div><dt>Comunicação</dt><dd id="conexao" role="status">Conectando</dd></div>
+      </dl>
+    </section>
+    <section class="painel camera" aria-label="Câmera e reconhecimento de gestos">
+      <div class="visor">
+        <video id="video" autoplay muted playsinline aria-label="Imagem ao vivo da câmera"></video>
+        <span id="seloCamera">Câmera desligada</span>
+      </div>
+      <p id="gesto" class="gesto" role="status">AGUARDANDO GESTO</p>
+      <p id="deteccao">Nenhuma mão detectada.</p>
+      <p id="estadoCamera" role="status">Preparando a experiência...</p>
+      <div class="controles">
+        <button id="ativar" type="button" disabled>Ativar câmera</button>
+        <button id="encerrar" type="button" disabled>Encerrar câmera</button>
+        <button id="alternar" type="button" disabled hidden>Alternar câmera</button>
+      </div>
+      <button id="revalidar" type="button" hidden>Tentar conexão novamente</button>
+    </section>
+    <section class="painel" aria-label="Reprodução virtual">
+      <button id="operarFilaCompleta" type="button" disabled>Operar fila completa com câmera e MQTT</button>
+      <h2>Simulação 3D por gestos</h2>
+      <p>Selecione um programa validado para reproduzir uma vez. A quantidade da produção não é alterada.</p>
+      <select id="programaVirtual" aria-label="Programa para simulação"></select>
+      <button id="abrirSimulacao" type="button" disabled>Preparar simulação 3D</button>
+      <iframe id="simulacaoVirtual" title="Simulação 3D do programa" hidden style="width:100%;height:600px;border:0"></iframe>
+    </section>
+    <section class="painel" aria-labelledby="como-usar">
+      <h2 id="como-usar">Controle por gestos</h2>
+      <p>Palma aberta: <strong>START</strong>. Punho fechado: <strong>PAUSA</strong>. Palma aberta durante pausa: <strong>RETOMAR</strong>.</p>
+      <p>Mostre apenas uma mão e mantenha o gesto estável. Retire a mão antes de repetir o mesmo gesto.</p>
+      <p><strong>Última solicitação:</strong> <span id="resultado" role="status">Aguardando gesto. Entrar nesta página não inicia a produção.</span></p>
+      <p class="nota">PAUSA por gesto não é parada de emergência. O vídeo é processado neste dispositivo, sem gravação, armazenamento ou envio de imagens.</p>
+      <a class="botao" href="../iniciar-producao/iniciarproducao.html">Voltar ao SoldaTouch</a>
+    </section>
+    <noscript>Ative o JavaScript para utilizar a câmera e reconhecer gestos.</noscript>
+  </main>
+  <script type="module" src="./camera.js"></script>
+<script src="../shared/navigation.js" defer></script>
+</body>
+</html>

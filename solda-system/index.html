@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>SoldaTouch</title>
+    <title>SoldaTech</title>
 
     <!-- Fonte -->
  
@@ -19,7 +19,7 @@
 
         
 
-        <h1>SOLDATOUCH</h1>
+        <h1>SOLDATECH</h1>
 
         <div class="boot-subtitle">
             SISTEMA DE SOLDAGEM INTELIGENTE
@@ -43,15 +43,15 @@
     <!-- MENU LATERAL -->
     <aside id="menuPrincipal" class="menu" aria-label="Menu principal">
       <div class="logo">
-        <img id="logosolda" src="../images/logosoldatech.png" alt="" />
+        <img id="logosolda" src="../images/logosoldatech.svg" alt="SoldaTech" />
         <h2>
-          SOLDATOUCH
+          SOLDATECH
         </h2>
         <p>Sistema de Soldagem</p>
       </div>
 
   <nav class="menu-links">
-  <a class="ativo" href="#">Início</a>
+  <a class="ativo" href="./index.html">Início</a>
 
   <a
     id="menuOperadores"
@@ -62,12 +62,12 @@
   </a>
 
 
-  <a href="#">Programas</a>
-  <a href="#">Modo Ensino</a>
-  <a href="#">Produção</a>
-  <a href="#">Configurações</a>
-  <a href="#">Alarmes</a>
-  <a href="#">Histórico</a>
+  <a href="../carregar-programa/carregarprograma.html">Programas</a>
+  <a href="../modo-ensino/modoensino.html">Modo Ensino</a>
+  <a href="../iniciar-producao/iniciarproducao.html">Produção</a>
+  <a href="../configuracoes/index.html">Configurações</a>
+  <a href="../alarmes/index.html">Alarmes</a>
+  <a href="../painel-producao/painelproducao.html">Histórico</a>
 </nav>
       <div class="emergencia">
         <button>PARADA DE EMERGÊNCIA</button>
@@ -135,7 +135,7 @@ onclick="novoPrograma()">
         <div class="btn roxo" onclick="window.location.href='../modo-ensino/modoensino.html'">
           <img src="../images/modoensino.png" class="icone">
           <h3>MODO ENSINO</h3>
-          <p>Aprenda a utilizar o SoldaTouch</p>
+          <p>Aprenda a utilizar o SoldaTech</p>
           <span class="seta">→</span>
         </div>
 
@@ -382,7 +382,8 @@ MODAL - PRODUÇÃO PAUSADA
   </div>
 
 </div>
-  </body>
+  <script src="../shared/navigation.js" defer></script>
+</body>
  <script src="./script.js"></script>
 
 <script

@@ -450,7 +450,7 @@ function dadosDoOperador(operador, historico, pausas) {
     (item) => pausaFinalizada(item) && item.operadorUid === operador.uid,
   );
   const concluidas = registros.filter(statusConcluido);
-  const eficiencias = registros.map((item) => Number(item.eficiencia)).filter(Number.isFinite);
+  const eficiencias = registros.filter(item => item.eficiencia != null).map((item) => Number(item.eficiencia)).filter(Number.isFinite);
   return {
     registros,
     pausas: pausasOperador,
@@ -774,7 +774,7 @@ async function carregarSeletorProducaoOperadorAdmin() {
   seletorOperadorProducaoAdmin.disabled = true;
 
   try {
-    const operadores = await window.buscarOperadoresEmpresaFirebase();
+    const operadores = await window.buscarOperadoresEmpresaFirebase(true);
     operadoresEmpresa = Array.isArray(operadores) ? operadores : [];
 
     if (operadoresEmpresa.length === 0) {
@@ -1261,12 +1261,6 @@ function atualizarKpis(
   historicoConcluido.forEach(
     (item) => {
 
-      somaEficiencia +=
-        Number(
-          item.eficiencia
-        ) || 98;
-
-
       segundos +=
         converterTempoParaSegundos(
           item.tempo
@@ -1289,21 +1283,12 @@ function atualizarKpis(
     );
 
 
-  eficienciaMedia.innerText =
-    historicoConcluido.length > 0
-      ? Math.round(
-          somaEficiencia /
-          historicoConcluido.length
-        ) + "%"
-      : "0%";
+  const eficiencias = historicoConcluido.filter(item => item.eficiencia != null && Number.isFinite(Number(item.eficiencia)));
+  eficienciaMedia.innerText = eficiencias.length
+    ? (eficiencias.reduce((total, item) => total + Number(item.eficiencia), 0) / eficiencias.length).toFixed(1) + "%"
+    : "Indisponível";
+  consumoArame.innerText = "Indisponível";
 
-
-  consumoArame.innerText =
-    (
-      totalPecas *
-      0.019
-    ).toFixed(2) +
-    " kg";
 }
 function atualizarProducaoAtual(
   producaoAtual,
@@ -2000,7 +1985,7 @@ function desenharBarras(
 
 function desenharLinha(canvas, historico) {
   const ctx = ajustarCanvas(canvas);
-  const pontos = historico.map((item) => Number(item.eficiencia) || 98);
+  const pontos = historico.filter(item => item.eficiencia != null && Number.isFinite(Number(item.eficiencia))).map(item => Number(item.eficiencia));
 
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
@@ -2448,6 +2433,7 @@ async function iniciarObservacaoProducaoAtual() {
     cancelarObservacaoOperadorLogado =
       await window.observarProducaoAtualFirebase(
       (producaoAtual) => {
+        const producaoAnterior = producaoAtualGlobal;
 
         /*
         Atualiza variável local
@@ -2477,6 +2463,15 @@ async function iniciarObservacaoProducaoAtual() {
           fila,
           historicoGlobal
         );
+        // A execução salva o histórico antes de remover a produção ativa.
+        // A outra aba precisa recarregar também os KPIs, sem exigir refresh.
+        if (producaoAnterior && !producaoAtual) {
+          carregarHistorico().then(historico => {
+            historicoGlobal = historico;
+            atualizarPainelPeriodo();
+            atualizarProducaoAtual(producaoAtualGlobal, carregarFila(), historicoGlobal);
+          }).catch(erro => console.error('Erro ao atualizar histórico após conclusão:', erro));
+        }
       }
     );
 

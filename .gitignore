@@ -19,3 +19,9 @@ node_modules/
 
 # Arquivos temporários
 *.log
+# Sessao local e tokens temporarios
+.soldatech/
+
+dist-pages/
+
+new-program/mqtt-config.local.js

@@ -491,6 +491,13 @@ button {
   letter-spacing: 1px;
 }
 
+.opcoes-inicio { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; grid-column: 1 / -1; }
+.opcoes-inicio button { min-height: 52px; white-space: normal; }
+#btnVisao { display: flex; align-items: center; justify-content: center; gap: 8px; background: #133047; color: #b8f7ff; border: 1px solid #00cbdc; }
+#btnVisao svg { flex-shrink: 0; }
+#avisoVisao { grid-column: 1 / -1; color: #cbd5e1; font-size: 0.9rem; margin: 0; }
+@media (max-width: 380px) { .opcoes-inicio { grid-template-columns: 1fr; } }
+
 /* RESPONSIVO */
 
 @media (max-width: 900px) {

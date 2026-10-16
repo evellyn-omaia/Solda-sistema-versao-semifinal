@@ -35,6 +35,7 @@ renderer.outputEncoding = THREE.sRGBEncoding;
 document.body.appendChild(renderer.domElement);
 
 let quadroResizeCena3D = null;
+let raioModeloVisivel = 0;
 
 function redimensionarCena3D() {
   quadroResizeCena3D = null;
@@ -45,6 +46,12 @@ function redimensionarCena3D() {
 
   camera.aspect = largura / altura;
   camera.updateProjectionMatrix();
+  if (raioModeloVisivel && typeof controls !== 'undefined') {
+    const angulo = Math.min(camera.fov * Math.PI / 360, Math.atan(Math.tan(camera.fov * Math.PI / 360) * camera.aspect));
+    const direcao = camera.position.clone().sub(controls.target).normalize();
+    camera.position.copy(controls.target).addScaledVector(direcao, raioModeloVisivel / Math.sin(angulo) * 1.12);
+    controls.update();
+  }
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
   renderer.setSize(largura, altura, false);
 }
@@ -58,6 +65,7 @@ function solicitarResizeCena3D() {
 }
 
 solicitarResizeCena3D();
+new ResizeObserver(solicitarResizeCena3D).observe(renderer.domElement);
 
 /* =====================================
 CONTROLES CAMERA
@@ -224,6 +232,9 @@ window.SoldaTouchIntegracaoFisica (MQTT
 */
 function definirIndutorSoldando(ativo) {
   const deveAtivar = Boolean(ativo);
+
+  // Soldagem física automática ainda não homologada (P01).
+  if (deveAtivar && maquinaRealAtiva()) return;
 
   if (!aplicarAparenciaSoldaVisual(deveAtivar)) {
     return;
@@ -672,6 +683,8 @@ function ajustarModeloNaCena(modelo) {
     tamanhoFinal.z * 1.15,
   );
 
+  raioModeloVisivel = tamanhoFinal.length() / 2;
+  solicitarResizeCena3D();
   camera.near = 0.01;
   camera.far = 2000;
   camera.updateProjectionMatrix();
@@ -844,6 +857,9 @@ window.definirModoIntegracaoMaquina = function definirModoIntegracaoMaquina(modo
     throw new TypeError(`Modo de integração inválido: ${modo}`);
   }
 
+  if (window.producaoMQTT?.bloqueada() || [EstadoExecucao.EXECUTANDO, EstadoExecucao.PREPARANDO, EstadoExecucao.PAUSADO].includes(estadoExecucao)) {
+    throw new Error("Pare a execução antes de trocar o modo de integração.");
+  }
   modoIntegracaoMaquina = modo;
 };
 
@@ -876,12 +892,33 @@ function aplicarModoMaquinaReal(ativar) {
 const chkMaquinaReal = document.getElementById("chkMaquinaReal");
 
 if (chkMaquinaReal) {
-  const ligadoSalvo = localStorage.getItem(CHAVE_MAQUINA_REAL) === "true";
+  const ligadoSalvo = false; // Controle físico exige seleção explícita a cada sessão.
 
   chkMaquinaReal.checked = ligadoSalvo;
   aplicarModoMaquinaReal(ligadoSalvo);
 
   chkMaquinaReal.addEventListener("change", () => {
+    if (executandoPrograma || inicioCicloPendente || envioFilaMqttPendente) {
+      chkMaquinaReal.checked = maquinaRealAtiva();
+      return;
+    }
+    pararControleManual();
+    if (producaoFisicaPendentePersistida || window.producaoMQTT?.bloqueada()) {
+      if (chkMaquinaReal.checked) {
+        modoIntegracaoMaquina = ModoIntegracaoMaquina.CLP_CONFIRMADO;
+        simulacaoVirtualIsolada = false;
+        estadoExecucao = EstadoExecucao.PARADA;
+        esconderBotaoIniciarCiclo();
+        document.getElementById("btnPlayPause").disabled = true;
+        informarEnvioFilaMqtt("Produção física pendente preservada. Consulte o Node-RED antes do controle físico.");
+        return;
+      }
+      if (!prepararSimulacaoVirtualIsolada()) {
+        chkMaquinaReal.checked = true;
+        informarEnvioFilaMqtt("Simulação local indisponível: confira programa, quantidade, pontos e modelo 3D.");
+      }
+      return;
+    }
     if (chkMaquinaReal.checked && !window.mqttEstaConectado?.()) {
       alert(
         "O MQTT ainda não está conectado ao broker. A máquina real pode não responder aos comandos.",
@@ -891,6 +928,34 @@ if (chkMaquinaReal) {
     localStorage.setItem(CHAVE_MAQUINA_REAL, String(chkMaquinaReal.checked));
     aplicarModoMaquinaReal(chkMaquinaReal.checked);
   });
+}
+
+function prepararSimulacaoVirtualIsolada() {
+  const item = filaProducao[indiceFila];
+  const quantidade = Number(item?.quantidade);
+  if (!producaoFisicaPendentePersistida || !item?.programa ||
+      !Number.isSafeInteger(quantidade) || quantidade < 1 || !pontos.length ||
+      !mesaReal || !conjuntoMovel || pontos.some(p =>
+        !Number.isFinite(p.zMm) || !Number.isFinite(p.anguloMesaGraus))) {
+    return false;
+  }
+
+  modoIntegracaoMaquina = ModoIntegracaoMaquina.SIMULACAO;
+  simulacaoVirtualIsolada = true;
+  estadoExecucao = EstadoExecucao.AGUARDANDO_INICIO;
+  executandoPrograma = false;
+  programaPausado = false;
+  repeticaoAtual = 0;
+  indicePontoAtual = 0;
+  girando = false;
+  mostrarBotaoIniciarCiclo();
+  document.getElementById("btnPlayPause").disabled = true;
+  document.getElementById("statusPrograma").textContent =
+    "Simulação virtual local preparada. A produção física pendente não será alterada.";
+  document.getElementById("execucaoAtual").textContent =
+    `Prévia virtual · 0/${quantidade} peças · ${pontos.length} pontos`;
+  informarEnvioFilaMqtt("Modo virtual local. A produção física pendente permanece intacta; nenhum comando MQTT será enviado.");
+  return true;
 }
 
 let aguardandoTrocaPeca = false;
@@ -1044,7 +1109,7 @@ function aplicarPosicaoZReal(valorMm) {
   atualizarIndicadorPosicao();
 }
 
-function pararMovimentoContinuo() {
+function pararMovimentoContinuo(evento) {
   window.clearTimeout(temporizadorInicioHold);
   window.clearInterval(temporizadorRepeticaoHold);
   temporizadorInicioHold = null;
@@ -1063,6 +1128,13 @@ function pararMovimentoContinuo() {
       window.clearTimeout(temporizadorDecisaoTap);
       aguardandoDecisaoTap = false;
 
+      // Cancelamento, blur e início de programa nunca viram um novo pulso.
+      if (evento?.type !== "pointerup") {
+        botaoHoldAtivo?.classList.remove("is-pressed");
+        botaoHoldAtivo?.setAttribute("aria-pressed", "false");
+        botaoHoldAtivo = null;
+        return;
+      }
       const direcaoTexto = direcaoJogRealAtual > 0 ? "CIMA" : "BAIXO";
 
       Promise.resolve(
@@ -1258,11 +1330,18 @@ real informada pelo CLP através das
 mensagens STATUS (via Node-RED/MQTT).
 */
 window.SoldaTouchMQTT?.eventos.addEventListener("tipo-evento", (evento) => {
-  if (evento.detail?.tipo !== "STATUS" || !maquinaRealAtiva()) {
+  const espelharSimulador = window.acompanharSimulador === true &&
+    evento.detail?.dados?.simulacao === true && !executandoPrograma;
+  if (evento.detail?.tipo !== "STATUS" || (!maquinaRealAtiva() && !espelharSimulador)) {
     return;
   }
 
   const dados = evento.detail.dados || {};
+
+  if (espelharSimulador) {
+    girando = false; // A posição vem do simulador, sem somar animação local.
+    atualizarStatusMesa(dados.estado === "EXECUTANDO" ? "GIRANDO (SIMULAÇÃO)" : "PARADA (SIMULAÇÃO)");
+  }
 
   if (dados.posicaoZMm !== undefined) {
     aplicarPosicaoZReal(dados.posicaoZMm);
@@ -1272,7 +1351,7 @@ window.SoldaTouchMQTT?.eventos.addEventListener("tipo-evento", (evento) => {
     const angulo = Number(dados.anguloMesaGraus);
 
     if (Number.isFinite(angulo)) {
-      mesaReal.rotation.z = THREE.MathUtils.degToRad(angulo);
+      definirAnguloMesaGraus(angulo);
     }
   }
 
@@ -1309,6 +1388,8 @@ let pontos = [];
 let executandoPrograma = false;
 let indicePontoAtual = 0;
 let filaProducao = [];
+let producaoFisicaPendentePersistida = false;
+let simulacaoVirtualIsolada = false;
 let indiceFila = 0;
 let repeticaoAtual = 0;
 let producaoCancelada = false;
@@ -1451,7 +1532,10 @@ function atualizarLista() {
 
     const titulo = document.createElement("strong");
 
-    titulo.innerText = `P${index + 1}`;
+    const ordemOriginal = Number.isSafeInteger(Number(ponto.ordem))
+      ? Number(ponto.ordem)
+      : index + 1;
+    titulo.innerText = `P${ordemOriginal} · ${ponto.id || "sem ID"}`;
 
     const posicao = document.createElement("p");
 
@@ -1462,6 +1546,9 @@ function atualizarLista() {
     posicaoMesa.innerText = `Mesa: ${Number(ponto.anguloMesaGraus).toFixed(
       2,
     )}°`;
+
+    const solda = document.createElement("p");
+    solda.innerText = `Soldagem: ${ponto.solda?.ativar ? "Ativa" : "Inativa"}`;
 
     const botaoExcluir = document.createElement("button");
 
@@ -1502,6 +1589,7 @@ function atualizarLista() {
     card.appendChild(titulo);
     card.appendChild(posicao);
     card.appendChild(posicaoMesa);
+    card.appendChild(solda);
     card.appendChild(botaoExcluir);
 
     lista.appendChild(card);
@@ -1518,6 +1606,14 @@ let inicioPausaAtual = null;
 let pausaIdAtual = null;
 
 async function salvarEstadoExecucaoFirebase(status, propagarErro = false) {
+  if (simulacaoVirtualIsolada) return;
+  if (maquinaRealAtiva() || window.producaoMQTT?.bloqueada()) {
+    const atual = await window.buscarProducaoAtualFirebase?.();
+    if (atual?.producaoId === window.producaoMQTT.sessao?.producaoId)
+      await window.salvarProducaoAtualFirebase({ ...atual, simulacao: false,
+        status: window.producaoMQTT.estado, pausaId: pausaIdAtual, motivoPausa: motivoPausaAtual });
+    return;
+  }
   /*
   =============================
   VALIDAR PRODUÇÃO
@@ -1571,10 +1667,12 @@ async function salvarEstadoExecucaoFirebase(status, propagarErro = false) {
   const quantidadeTotal = Number(itemAtual.quantidade) || 0;
 
   const quantidadeConcluida = Number(repeticaoAtual) || 0;
+  producaoId ||= crypto.randomUUID();
+  const pontosExecutados = quantidadeConcluida * pontos.length + Math.min(indicePontoAtual, pontos.length);
 
   const percentual =
     quantidadeTotal > 0
-      ? Math.round((quantidadeConcluida / quantidadeTotal) * 100)
+      ? Math.min(100, Math.round(pontosExecutados / (quantidadeTotal * pontos.length) * 100))
       : 0;
 
   /*
@@ -1584,7 +1682,9 @@ async function salvarEstadoExecucaoFirebase(status, propagarErro = false) {
   */
 
   try {
-    await window.salvarProducaoAtualFirebase({
+    const dadosEstado = {
+      producaoId, simulacao: true, pontosExecutados,
+      tempoDecorridoSegundos: inicioProducao ? Math.max(0, (Date.now() - inicioProducao) / 1000) : 0,
       programa: itemAtual.programa,
 
       quantidadeTotal: quantidadeTotal,
@@ -1599,7 +1699,7 @@ async function salvarEstadoExecucaoFirebase(status, propagarErro = false) {
 
       fila: filaProducao,
 
-      pontoAtual: indicePontoAtual + 1,
+      pontoAtual: Math.min(indicePontoAtual + 1, pontos.length),
 
       totalPontos: pontos.length,
 
@@ -1614,7 +1714,9 @@ async function salvarEstadoExecucaoFirebase(status, propagarErro = false) {
       motivoPausaAtual: motivoPausaAtual || null,
 
       inicioPausaAtual: inicioPausaAtual || null,
-    });
+    };
+    gravacaoProducao = gravacaoProducao.catch(() => {}).then(() => window.salvarProducaoAtualFirebase(dadosEstado));
+    await gravacaoProducao;
 
     console.log("Estado salvo no Firebase:", {
       status: status,
@@ -1680,6 +1782,22 @@ function alternarMovimentoReproducaoSimples() {
 }
 
 async function alternarMovimento() {
+  if (estadoExecucao === EstadoExecucao.EMERGENCIA) return;
+  if (maquinaRealAtiva()) {
+    try {
+      const acao = window.producaoMQTT.estado === 'PAUSADO' ? 'RETOMAR' : 'PAUSAR';
+      const r = await window.producaoMQTT.controlar(acao);
+      if (r.estado === 'PAUSADO') {
+        inicioPausaAtual = Date.now(); motivoPausaAtual = 'Sem motivo';
+        const pausa = await window.iniciarPausaFirebase(motivoPausaAtual, inicioPausaAtual);
+        pausaIdAtual = pausa.id;
+        document.getElementById('modalMotivoPausa').style.display = 'flex';
+      } else if (acao === 'RETOMAR' && r.estado === 'EXECUTANDO' && pausaIdAtual) {
+        await window.finalizarPausaFirebase(pausaIdAtual); pausaIdAtual = null;
+      }
+    } catch (erro) { informarEnvioFilaMqtt(erro.message); }
+    return;
+  }
   /*
   =============================
   VALIDAR EXECUÇÃO
@@ -2133,6 +2251,10 @@ async function solicitarComandoMaquina(comando, dados = {}, opcoes = {}) {
     return true;
   }
 
+  if (["MOVER_PONTO", "SOLDA_ON"].includes(comando)) {
+    throw new Error("Execução física automática não homologada (P01).");
+  }
+
   const deveAguardarConfirmacao =
     modoIntegracaoMaquina === ModoIntegracaoMaquina.CLP_CONFIRMADO &&
     opcoes.aguardarConfirmacao === true;
@@ -2277,7 +2399,7 @@ function atualizarBarraProgresso() {
     }
   });
 
-  concluido += repeticaoAtual;
+  concluido += repeticaoAtual + (pontos.length ? Math.min(indicePontoAtual, pontos.length) / pontos.length : 0);
 
   const porcentagem = total > 0 ? Math.min((concluido / total) * 100, 100) : 0;
   document.getElementById("barraProgresso").style.width = porcentagem + "%";
@@ -2325,7 +2447,7 @@ function atualizarTempoRestante() {
   const segundos = segundosRestantes % 60;
 
   document.getElementById("tempoRestante").innerText =
-    `Tempo restante: ${String(minutos).padStart(
+    `Tempo restante estimado: ${String(minutos).padStart(
       2,
       "0",
     )}:${String(segundos).padStart(2, "0")}`;
@@ -2383,7 +2505,10 @@ async function registrarProducaoFinalizada() {
 
       tempo: tempoFormatado,
 
-      eficiencia: 98,
+      producaoId: `${producaoId || inicioProducao}-${filaProducao.indexOf(item)}`,
+      simulacao: true,
+      inicioTimestamp: inicioProducao,
+      fimTimestamp: Date.now(),
 
       status: "Concluído",
 
@@ -2402,7 +2527,7 @@ async function registrarProducaoFinalizada() {
       try {
         await window.salvarHistoricoProducaoFirebase(registroHistorico);
       } catch (erro) {
-        console.error("Erro ao salvar histórico no Firebase:", erro);
+        throw erro;
       }
     }
   }
@@ -2419,7 +2544,23 @@ async function registrarProducaoFinalizada() {
 }
 
 async function finalizarProducao() {
+  if (maquinaRealAtiva() || (window.producaoMQTT?.bloqueada() && !simulacaoVirtualIsolada)) return;
   if (finalizacaoEmAndamento) {
+    return;
+  }
+
+  if (simulacaoVirtualIsolada) {
+    finalizacaoEmAndamento = true;
+    executandoPrograma = false;
+    programaPausado = false;
+    estadoExecucao = EstadoExecucao.FINALIZADO;
+    girando = false;
+    document.getElementById("statusPrograma").innerText =
+      "Prévia virtual concluída. A produção física pendente foi preservada sem alterações.";
+    document.getElementById("textoProgresso").innerText = "100% (prévia virtual)";
+    document.getElementById("barraProgresso").style.width = "100%";
+    document.getElementById("execucaoAtual").innerText = "Prévia virtual finalizada";
+    document.getElementById("btnPlayPause").disabled = true;
     return;
   }
 
@@ -2720,7 +2861,7 @@ function animate() {
   EXECUÇÃO AUTOMÁTICA
   ========================== */
 
-  if (executandoPrograma && !programaPausado) {
+  if (executandoPrograma && !programaPausado && !maquinaRealAtiva()) {
     const pontoAtual = pontos[indicePontoAtual];
 
     /*
@@ -2902,6 +3043,11 @@ function animate() {
           */
 
           indicePontoAtual++;
+          if (!modoReproducaoSimples) {
+            void salvarEstadoExecucaoFirebase("EXECUTANDO");
+            atualizarBarraProgresso();
+            atualizarTempoRestante();
+          }
 
           /*
           ==========================
@@ -2978,7 +3124,7 @@ async function salvarPrograma() {
     pontos: pontos.map((ponto, index) => ({
       id: ponto.id,
 
-      ordem: index + 1,
+      ordem: ponto.ordem,
 
       zMm: Number(ponto.zMm),
 
@@ -3008,7 +3154,7 @@ async function salvarPrograma() {
   } catch (erro) {
     console.error("Erro ao salvar programa:", erro);
 
-    alert("Não foi possível salvar o programa.");
+    alert(`Não foi possível salvar o programa: ${erro.message || erro}`);
   }
 }
 async function carregarProgramaFila(
@@ -3017,8 +3163,8 @@ async function carregarProgramaFila(
 ) {
   if (!window.carregarProgramaFirebase) {
     console.error("Função carregarProgramaFirebase não está disponível.");
-
-    return;
+    document.getElementById("statusPrograma").innerText = "Firebase de programas indisponível.";
+    return false;
   }
 
   try {
@@ -3026,8 +3172,9 @@ async function carregarProgramaFila(
 
     if (!programa) {
       console.error("Programa da fila não encontrado:", nomePrograma);
-
-      return;
+      document.getElementById("programaAtualExecucao").innerText = `Programa não encontrado: ${nomePrograma}`;
+      document.getElementById("statusPrograma").innerText = `O programa ${nomePrograma} da fila não foi encontrado no Firebase.`;
+      return false;
     }
 
     const pontosCarregados = prepararPontosDoPrograma(programa);
@@ -3035,8 +3182,7 @@ async function carregarProgramaFila(
     if (pontosCarregados === null || pontosCarregados.length === 0) {
       document.getElementById("statusPrograma").innerText =
         "Programa inválido ou sem pontos.";
-
-      return;
+      return false;
     }
 
     pontos = pontosCarregados;
@@ -3048,15 +3194,23 @@ async function carregarProgramaFila(
 
     document.getElementById("programaAtualExecucao").innerText =
       `Programa: ${programa.nome}`;
+    const itemFilaAtual = filaProducao[indiceFila];
+    const quantidadeFilaAtual = Number(itemFilaAtual?.quantidade);
+    if (Number.isSafeInteger(quantidadeFilaAtual) && quantidadeFilaAtual > 0) {
+      document.getElementById("programaAtualExecucao").innerText +=
+        ` · Programa ${indiceFila + 1}/${filaProducao.length} · ${quantidadeFilaAtual} peça(s)`;
+    }
 
     if (iniciarAutomaticamente) {
       iniciarExecucaoPrograma();
     }
+    return true;
   } catch (erro) {
     console.error("Erro ao carregar programa da fila:", erro);
 
     document.getElementById("statusPrograma").innerText =
       "Erro ao carregar programa da fila.";
+    return false;
   }
 }
 
@@ -3081,6 +3235,10 @@ function prepararPontosDoPrograma(programa) {
     return null;
   }
 
+  const ordens = pontosOriginais.map(p => p?.ordem);
+  if (ordens.some(n => !Number.isSafeInteger(n) || n < 1) || new Set(ordens).size !== ordens.length) {
+    alert('Programa com ordem de pontos inválida ou duplicada. Revise o cadastro.'); return null;
+  }
   const pontosOrdenados = pontosOriginais.sort((pontoA, pontoB) => {
     return Number(pontoA.ordem) - Number(pontoB.ordem);
   });
@@ -3115,7 +3273,7 @@ function prepararPontosDoPrograma(programa) {
     pontosPreparados.push({
       id: ponto.id || `ponto-carregado-${index + 1}`,
 
-      ordem: index + 1,
+      ordem: Number(ponto.ordem),
 
       zMm: Number(zMm.toFixed(2)),
 
@@ -3280,10 +3438,144 @@ function esconderBotaoIniciarCiclo() {
   }
 }
 
+// Transmite o planejamento completo, sem executar movimentos nem exigir o CLP.
+let envioFilaMqttPendente = false;
+function informarEnvioFilaMqtt(mensagem) {
+  const el = document.getElementById("statusEnvioFilaMqtt");
+  if (el) el.textContent = mensagem;
+}
+async function enviarFilaCompletaNodeRed() {
+  if (envioFilaMqttPendente || executandoPrograma) return false;
+  envioFilaMqttPendente = true;
+  const botao = document.getElementById("btnEnviarFilaMqtt");
+  if (botao) botao.disabled = true;
+  try {
+    if (!window.mqttEstaConectado?.()) throw new Error("MQTT offline. Verifique a conexão com o HiveMQ.");
+    if (!Array.isArray(filaProducao) || !filaProducao.length) throw new Error("Nenhuma fila de produção carregada.");
+    if (typeof window.carregarProgramaFirebase !== "function") throw new Error("Carregamento de programas Firebase indisponível.");
+    const filaCompleta = [];
+    for (let i = 0; i < filaProducao.length; i++) {
+      const item = filaProducao[i];
+      const quantidade = Number(item.quantidade);
+      if (!Number.isSafeInteger(quantidade) || quantidade < 1) throw new Error(`Quantidade inválida no item ${i + 1}.`);
+      const programa = await window.carregarProgramaFirebase(item.programa);
+      if (!programa) throw new Error(`Programa não encontrado: ${item.programa}`);
+      const pontosDoPrograma = prepararPontosDoPrograma(programa);
+      if (!Array.isArray(pontosDoPrograma) || !pontosDoPrograma.length) throw new Error(`Programa sem pontos válidos: ${item.programa}`);
+      // O preparador visual arredonda coordenadas e reduz parâmetros de solda.
+      // O contrato físico deve transportar os valores originais do cadastro.
+      const pontosCadastrados = Object.values(programa.pontos).sort((a, b) => a.ordem - b.ordem);
+      if (pontosCadastrados.some(p => typeof p.id !== 'string' || !p.id ||
+          !Number.isFinite(p.zMm) || !Number.isFinite(p.anguloMesaGraus)))
+        throw new Error(`Pontos sem identificação ou coordenadas válidas: ${item.programa}`);
+      filaCompleta.push({ ordem: i + 1, programa: String(item.programa), nome: programa.nome || String(item.programa), quantidade,
+        totalPontosPorPeca: pontosDoPrograma.length,
+        tipoMaterial: item.tipoMaterial ?? programa.tipoMaterial ?? "", materialSolda: item.materialSolda ?? programa.materialSolda ?? "",
+        pontos: pontosCadastrados.map(p => ({ ...p, soldagem: p.soldagem ?? p.solda,
+          solda: typeof p.solda === 'boolean' ? p.solda : Boolean(p.solda?.ativar) })) });
+    }
+    informarEnvioFilaMqtt("Enviando fila ao HiveMQ...");
+    producaoId ||= crypto.randomUUID();
+    const hash = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(JSON.stringify(filaCompleta)));
+    const revisao = Array.from(new Uint8Array(hash), b => b.toString(16).padStart(2, '0')).join('');
+    const plano = { producaoId, revisao, versaoContrato: 1, fila: filaCompleta,
+      totalPecas: filaCompleta.reduce((s, item) => s + item.quantidade, 0),
+      modo: maquinaRealAtiva() ? 'FISICO' : 'VIRTUAL' };
+    if (maquinaRealAtiva()) {
+      await window.producaoMQTT.carregar(plano);
+      const atual = await window.buscarProducaoAtualFirebase?.();
+      if (atual?.producaoId && atual.producaoId !== producaoId) throw new Error('Outra produção persistida. Reconcilie antes de iniciar.');
+      await window.salvarProducaoAtualFirebase({ ...(atual || {}), producaoId, fila: filaProducao,
+        simulacao: false, revisaoPlanejamento: revisao, status: window.producaoMQTT.estado });
+    }
+    else {
+      const retorno = await window.enviarComandoComConfirmacao('CARREGAR_PRODUCAO', plano, { timeoutMs: 12000 });
+      if (retorno.producaoId !== producaoId || retorno.revisao !== revisao || retorno.estado !== 'RECEBIDA_NAO_EXECUTADA')
+        throw new Error('Planejamento sem confirmação compatível. Atualize manualmente o Node-RED.');
+    }
+    informarEnvioFilaMqtt(`Planejamento recebido: ${plano.totalPecas} peças. Sem execução física confirmada.`);
+    return true;
+  } catch (erro) {
+    informarEnvioFilaMqtt(`Falha ao enviar fila: ${erro.message}`);
+    console.error("Envio da fila ao Node-RED:", erro);
+    return false;
+  } finally {
+    envioFilaMqttPendente = false;
+    if (botao) botao.disabled = false;
+  }
+}
+document.getElementById("btnEnviarFilaMqtt")?.addEventListener("click", enviarFilaCompletaNodeRed);
+
 let inicioCicloPendente = false;
+let producaoId = null;
+let gravacaoProducao = Promise.resolve();
+let conclusaoPecaPendente = false;
+
+window.producaoMQTT = new ProducaoMQTT({
+  enviar: (...args) => window.enviarComandoComConfirmacao(...args), storage: localStorage,
+  atualizar({ estado, mensagem }) {
+    informarEnvioFilaMqtt(`Modo físico: ${estado}. ${mensagem || ''}`);
+    const pausa = document.getElementById('btnPlayPause');
+    if (pausa) {
+      pausa.disabled = !['EXECUTANDO', 'PREPARANDO', 'PAUSADO', 'AGUARDANDO_PECA'].includes(estado);
+      pausa.innerText = estado === 'PAUSADO' ? 'Continuar execução' : 'Pausar execução';
+    }
+    const iniciar = document.getElementById('btnIniciarCiclo');
+    if (iniciar && maquinaRealAtiva()) {
+      if (estado === 'PLANEJAMENTO_RECEBIDO' && !window.producaoMQTT.reconciliar && !inicioCicloPendente) {
+        mostrarBotaoIniciarCiclo();
+      } else if (window.producaoMQTT.sessao) {
+        esconderBotaoIniciarCiclo();
+      }
+    }
+  }
+});
+// Recuperar o modo não envia comandos; a consulta continua obrigat?ria.
+if (window.producaoMQTT.sessao) {
+  modoIntegracaoMaquina = ModoIntegracaoMaquina.CLP_CONFIRMADO;
+  if (chkMaquinaReal) chkMaquinaReal.checked = true;
+}
+async function consultarProducaoFisica() {
+  try {
+    const r = await window.producaoMQTT.controlar('CONSULTAR');
+    // Snapshot remoto ? adicional: não inventar progresso usando os contadores 3D.
+    const atual = await window.buscarProducaoAtualFirebase?.();
+    if (atual?.producaoId === r.producaoId) {
+      await window.salvarProducaoAtualFirebase({ ...atual, simulacao: false,
+        status: r.estado, estadoFisico: r, revisaoPlanejamento: r.revisao });
+    }
+  } catch (erro) { informarEnvioFilaMqtt(erro.message); }
+}
+window.addEventListener('soldatouch:mqtt-status', event => {
+  if (!event.detail?.mqttConectado) window.producaoMQTT.desconectar();
+  // Reconectar nunca reenvia início, retomada ou movimentos.
+});
+document.getElementById('btnConsultarProducao')?.addEventListener('click', consultarProducaoFisica);
+document.getElementById('btnCancelarProducaoMqtt')?.addEventListener('click', async () => {
+  try { await window.producaoMQTT.controlar('CANCELAR'); }
+  catch (erro) { informarEnvioFilaMqtt(erro.message); }
+});
+
 
 async function confirmarInicioCiclo() {
-  if (inicioCicloPendente || estadoExecucao !== EstadoExecucao.AGUARDANDO_INICIO) {
+  const simulacaoIsolada = typeof simulacaoVirtualIsolada !== "undefined" && simulacaoVirtualIsolada;
+  if (inicioCicloPendente) {
+    return;
+  }
+
+  const fisico = maquinaRealAtiva();
+  const pendenciaFisicaSemSessao =
+    typeof producaoFisicaPendentePersistida !== "undefined" &&
+    producaoFisicaPendentePersistida &&
+    !window.producaoMQTT?.sessao;
+  if (!fisico && estadoExecucao !== EstadoExecucao.AGUARDANDO_INICIO) {
+    informarEnvioFilaMqtt(`Início não aceito: estado atual ${estadoExecucao}.`);
+    return;
+  }
+  if (fisico && (window.producaoMQTT?.reconciliar ||
+      pendenciaFisicaSemSessao ||
+      (window.producaoMQTT?.sessao && window.producaoMQTT.estado !== 'PLANEJAMENTO_RECEBIDO'))) {
+    informarEnvioFilaMqtt(`Início físico não confirmado: ${window.producaoMQTT?.estado || 'sem estado'}. Consulte a produção; nenhum movimento foi solicitado.`);
     return;
   }
 
@@ -3296,8 +3588,31 @@ async function confirmarInicioCiclo() {
 
   inicioCicloPendente = true;
   try {
+    if (window.producaoMQTT?.bloqueada() && !maquinaRealAtiva() && !simulacaoIsolada)
+      throw new Error('Produção física pendente. Consulte o estado.');
+    if (maquinaRealAtiva()) {
+      if (window.producaoMQTT.reconciliar) throw new Error('Consulte a produção para reconciliar o estado.');
+      if (window.producaoMQTT.sessao && window.producaoMQTT.estado !== 'PLANEJAMENTO_RECEBIDO') {
+        informarEnvioFilaMqtt(`Modo físico: ${window.producaoMQTT.estado}. Consulte o estado; início não reenviado.`);
+        return;
+      }
+      if (!await enviarFilaCompletaNodeRed()) return;
+    } else if (simulacaoIsolada) {
+      informarEnvioFilaMqtt('Prévia virtual local iniciada; produção física pendente preservada.');
+    } else informarEnvioFilaMqtt('Modo virtual local: execução independente do Node-RED e do CLP.');
+    if (maquinaRealAtiva()) {
+      await window.producaoMQTT.controlar('INICIAR');
+      return;
+    }
     await iniciarExecucaoPrograma(true);
+  } catch (erro) {
+    informarEnvioFilaMqtt(erro.message);
   } finally {
+    if (!executandoPrograma) {
+      if (maquinaRealAtiva() && window.producaoMQTT?.sessao && window.producaoMQTT.estado !== 'PLANEJAMENTO_RECEBIDO')
+        esconderBotaoIniciarCiclo();
+      else mostrarBotaoIniciarCiclo();
+    }
     inicioCicloPendente = false;
   }
 }
@@ -3427,7 +3742,10 @@ function finalizarOuReiniciarReproducaoSimples() {
   }
 }
 
-async function iniciarReproducaoSimples() {
+async function iniciarReproducaoSimples(modoSolicitado = null) {
+  if (window.producaoMQTT?.bloqueada()) { informarEnvioFilaMqtt('Consulte a produção física pendente.'); return; }
+  if (estadoExecucao === EstadoExecucao.EMERGENCIA) return;
+  if (maquinaRealAtiva()) { informarBloqueioAutomatico(); return; }
   if (executandoPrograma) {
     alert("Já existe uma reprodução em andamento.");
     return;
@@ -3443,9 +3761,9 @@ async function iniciarReproducaoSimples() {
     return;
   }
 
-  const modo = await escolherModoReproducao();
+  const modo = modoSolicitado === "SINGULAR" ? "SINGULAR" : await escolherModoReproducao();
 
-  if (!modo) {
+  if (!modo || maquinaRealAtiva() || executandoPrograma || estadoExecucao === EstadoExecucao.EMERGENCIA) {
     return;
   }
 
@@ -3489,13 +3807,121 @@ async function iniciarReproducaoSimples() {
   atualizarIndicadorPosicao();
 }
 
+// Entrada da câmera local: reutiliza o motor virtual sem publicar comandos MQTT.
+window.controlarSimulacaoPorGesto = async function (gesto) {
+  if (maquinaRealAtiva()) {
+    if (gesto === 'START') {
+      if (window.producaoMQTT.estado === 'PAUSADO') await alternarMovimento();
+      else if (window.producaoMQTT.estado !== 'PLANEJAMENTO_RECEBIDO') {
+        const inicioNovoPermitido = !window.producaoMQTT.sessao &&
+          !(typeof producaoFisicaPendentePersistida !== 'undefined' && producaoFisicaPendentePersistida) &&
+          !window.producaoMQTT.reconciliar;
+        if (inicioNovoPermitido) {
+          await confirmarInicioCiclo();
+          return { estado: window.producaoMQTT.estado, mensagem: `Modo físico: ${window.producaoMQTT.estado}` };
+        }
+        const mensagem = `START reconhecido, mas produção física está ${window.producaoMQTT.estado}. Consulte o estado; nenhum movimento foi solicitado.`;
+        informarEnvioFilaMqtt(mensagem);
+        throw new Error(mensagem);
+      } else await confirmarInicioCiclo();
+    } else if (gesto === 'PAUSA') {
+      if (!['EXECUTANDO', 'PREPARANDO', 'AGUARDANDO_PECA'].includes(window.producaoMQTT.estado)) throw new Error('Produção não está executando.');
+      await alternarMovimento();
+    } else throw new Error('Gesto desconhecido.');
+    return { estado: window.producaoMQTT.estado, mensagem: `Modo físico: ${window.producaoMQTT.estado}` };
+  }
+  if (estadoExecucao === EstadoExecucao.EMERGENCIA || producaoCancelada)
+    throw new Error('Execução interrompida. Libere manualmente antes de iniciar novamente.');
+  if (gesto === 'START') {
+    if (executandoPrograma && programaPausado && estadoExecucao === EstadoExecucao.PAUSADO) {
+      await alternarMovimento();
+      return { estado: estadoExecucao, mensagem: 'Retomada solicitada pelos controles de produção.' };
+    }
+    if (executandoPrograma) throw new Error('Já existe uma execução. Use os controles manuais para retomar uma pausa.');
+    if (inicioReproducaoPendente) throw new Error('Seleção de reprodução em andamento.');
+   
+    if (!mesaReal || !conjuntoMovel) {
+  throw new Error('Modelo 3D ainda não está pronto.');
+}
+
+if (window.acompanharSimulador) {
+  throw new Error('Volte à edição local antes de iniciar a reprodução 3D.');
+}
+
+if (Array.isArray(filaProducao) && filaProducao.length > 0) {
+
+  // Produção em fila: os pontos pertencem aos programas
+  // cadastrados, não necessariamente ao editor atual.
+  if (estadoExecucao !== EstadoExecucao.AGUARDANDO_INICIO) {
+    throw new Error('Produção não está aguardando início.');
+  }
+
+  await confirmarInicioCiclo();
+
+} else {
+
+  // Reprodução simples: utiliza os pontos abertos no editor.
+  if (
+    !pontos.length ||
+    pontos.some(p =>
+      !Number.isFinite(p.zMm) ||
+      !Number.isFinite(p.anguloMesaGraus)
+    )
+  ) {
+    throw new Error(
+      'Nenhum programa válido carregado. Configure ou carregue os pontos.'
+    );
+  }
+
+  await iniciarReproducaoSimples('SINGULAR');
+}
+    if (!executandoPrograma) throw new Error('A reprodução não pôde iniciar.');
+  } else if (gesto === 'PAUSA') {
+    if (!executandoPrograma || programaPausado)
+      throw new Error('Não existe reprodução virtual em andamento para pausar.');
+    await alternarMovimento();
+  } else throw new Error('Gesto desconhecido.');
+  const mensagem = gesto === 'START' ? 'EXECUTANDO — reprodução virtual iniciada por gesto.' : 'PAUSADO — reprodução virtual pausada por gesto.';
+  document.getElementById('statusPrograma').textContent = mensagem;
+  return { estado: estadoExecucao, mensagem };
+};
+let inicioReproducaoPendente = false;
+window.addEventListener('soldatouch:maquina-evento', event => {
+  const dados = event.detail?.dados;
+  if (dados?.emergencia !== true && dados?.estado !== 'EMERGENCIA') return;
+  if (executandoPrograma && modoReproducaoSimples && !programaPausado)
+    alternarMovimentoReproducaoSimples();
+  estadoExecucao = EstadoExecucao.EMERGENCIA;
+  document.getElementById('statusPrograma').textContent = 'EMERGENCIA — reprodução bloqueada. Reinicialização manual necessária.';
+});
+
 document
   .getElementById("btnIniciarReproducao")
   ?.addEventListener("click", () => {
-    void iniciarReproducaoSimples();
+    if (inicioReproducaoPendente) return;
+    inicioReproducaoPendente = true;
+    void (filaProducao.length ? confirmarInicioCiclo() : iniciarReproducaoSimples()).finally(() => { inicioReproducaoPendente = false; });
   });
 
+function informarBloqueioAutomatico() {
+  const status = document.getElementById("statusPrograma");
+  if (status) status.innerText = "Execução física automática bloqueada: posicionamento e soldagem não homologados. Use o modo simulação.";
+}
+
 async function iniciarExecucaoPrograma(usarContagemInicial = true) {
+  if (executandoPrograma || producaoCancelada || estadoExecucao === EstadoExecucao.EMERGENCIA) return;
+  const item = filaProducao[indiceFila];
+  if (!item || !Number.isSafeInteger(Number(item.quantidade)) || Number(item.quantidade) < 1) {
+    const mensagem = 'Não foi possível iniciar: a fila não contém um programa com quantidade válida.';
+    const statusPrograma = document.getElementById('statusPrograma');
+    if (statusPrograma) statusPrograma.textContent = mensagem;
+    informarEnvioFilaMqtt(mensagem);
+    return;
+  }
+  inicioProducao ||= Date.now();
+  inicioExecucao ||= inicioProducao;
+  modoReproducaoSimples = false;
+  if (maquinaRealAtiva()) { informarBloqueioAutomatico(); return; }
   /*
   =============================
   VALIDAR PROGRAMA
@@ -3641,6 +4067,7 @@ async function iniciarExecucaoPrograma(usarContagemInicial = true) {
     statusPrograma.innerText = "Executando programa...";
   }
 
+  await salvarEstadoExecucaoFirebase("EXECUTANDO");
   console.log("Máquina liberada para execução.", {
     estado: estadoExecucao,
     mesa: "GIRANDO",
@@ -3663,9 +4090,86 @@ function ocultarControlesProducao() {
 
   ocultarElemento(document.querySelector('button[onclick="salvarPrograma()"]'));
 
-  ocultarElemento(document.getElementById("listaPontos"));
 }
 async function iniciarSistema() {
+  const programaVisao = new URLSearchParams(location.search).get('programaVisao');
+  if (programaVisao) {
+    try {
+      const programa = await window.carregarProgramaFirebase(programaVisao);
+      const preparados = programa && prepararPontosDoPrograma(programa);
+      if (!preparados?.length) throw new Error('Programa inválido ou sem pontos.');
+      pontos = preparados;
+      const quantidade = Number(new URLSearchParams(location.search).get('quantidade') || 1);
+      if (!Number.isSafeInteger(quantidade) || quantidade < 1) throw new Error('Quantidade inválida.');
+      filaProducao = [{ programa: programaVisao, quantidade }];
+      indiceFila = 0; repeticaoAtual = 0;
+      inicioProducao = Date.now(); inicioExecucao = inicioProducao;
+      producaoId = crypto.randomUUID();
+      document.getElementById('programaAtualExecucao').textContent =
+        `Programa: ${programa.nome} · 1/1 · ${quantidade} peça(s)`;
+      document.getElementById('execucaoAtual').textContent =
+        `Preparado · 0/${quantidade} peças · ${pontos.length} pontos`;
+      atualizarLista();
+      const anterior = await window.buscarProducaoAtualFirebase?.();
+      const pendenteFisico = anterior?.simulacao === false || Boolean(window.producaoMQTT?.bloqueada());
+      if (pendenteFisico) {
+        producaoFisicaPendentePersistida = true;
+        if (anterior?.fila?.length) {
+          filaProducao = anterior.fila;
+          const indiceFisico = Number(anterior.indiceFila);
+          indiceFila = Number.isSafeInteger(indiceFisico) && indiceFisico >= 0
+            ? Math.min(indiceFisico, filaProducao.length - 1)
+            : 0;
+          const itemFisico = filaProducao[indiceFila];
+          if (itemFisico?.programa && itemFisico.programa !== programaVisao) {
+            const fisico = await window.carregarProgramaFirebase(itemFisico.programa);
+            const pontosFisicos = fisico && prepararPontosDoPrograma(fisico);
+            if (!pontosFisicos?.length) throw new Error('Programa da produção física inválido ou sem pontos.');
+            pontos = pontosFisicos;
+            atualizarLista();
+          }
+        }
+        modoIntegracaoMaquina = ModoIntegracaoMaquina.CLP_CONFIRMADO;
+        if (chkMaquinaReal) chkMaquinaReal.checked = true;
+        const itemFisico = filaProducao[indiceFila];
+        const quantidadeFisica = Number(itemFisico?.quantidade) || quantidade;
+        document.getElementById('programaAtualExecucao').textContent =
+          `Plano físico pendente · ${itemFisico?.nome || programa.nome} · ${indiceFila + 1}/${filaProducao.length} · ${quantidadeFisica} peça(s)`;
+        document.getElementById('execucaoAtual').textContent =
+          `Estado não reconciliado · ${Number(anterior?.quantidadeConcluida) || 0}/${quantidadeFisica} peças · ${pontos.length} pontos`;
+        document.getElementById('statusPrograma').textContent =
+          'Plano carregado para consulta. Consulte o Node-RED para reconciliar; início virtual bloqueado.';
+        informarEnvioFilaMqtt('Produção física pendente: consulta necessária; visualização liberada, início bloqueado.');
+        esconderBotaoIniciarCiclo();
+        document.getElementById('btnPlayPause').disabled = true;
+        return;
+      }
+      if (anterior && ['EXECUTANDO', 'PAUSADO', 'AGUARDANDO_PECA', 'AGUARDANDO_INICIO'].includes(anterior.status)) {
+        if (anterior.programa !== programaVisao) throw new Error('Existe outra produção pendente. Abra Produção para recuperá-la.');
+        producaoId = anterior.producaoId || producaoId;
+        filaProducao = anterior.fila || filaProducao;
+        repeticaoAtual = Number(anterior.quantidadeConcluida) || 0;
+        indicePontoAtual = Math.max(0, Number(anterior.pontoAtual || 1) - 1);
+        inicioProducao = anterior.inicioTimestamp || inicioProducao;
+        estadoExecucao = anterior.status === 'AGUARDANDO_INICIO' ? EstadoExecucao.AGUARDANDO_INICIO
+          : anterior.status === 'AGUARDANDO_PECA' ? EstadoExecucao.AGUARDANDO_PECA : EstadoExecucao.PAUSADO;
+        executandoPrograma = estadoExecucao === EstadoExecucao.PAUSADO;
+        programaPausado = executandoPrograma;
+        if (executandoPrograma) {
+          document.getElementById('btnPlayPause').disabled = false;
+          document.getElementById('btnPlayPause').innerText = 'Continuar execução';
+        }
+        if (estadoExecucao === EstadoExecucao.AGUARDANDO_PECA) mostrarPainelTrocaPeca();
+      } else estadoExecucao = EstadoExecucao.AGUARDANDO_INICIO;
+      if (estadoExecucao === EstadoExecucao.AGUARDANDO_INICIO) mostrarBotaoIniciarCiclo();
+      await salvarEstadoExecucaoFirebase(estadoExecucao, true);
+      atualizarLista();
+      document.getElementById('statusPrograma').textContent = 'Programa pronto para reprodução virtual por gesto.';
+    } catch (erro) {
+      document.getElementById('statusPrograma').textContent = `Não foi possível preparar a simulação: ${erro.message || erro}`;
+    }
+    return;
+  }
   recuperarBackupProgramas();
 
   definirIndutorSoldando(false);
@@ -3684,6 +4188,15 @@ async function iniciarSistema() {
     }
   } catch (erro) {
     console.error("Erro ao verificar produção salva no Firebase:", erro);
+  }
+
+  const pendenciaFisica = producaoSalvaFirebase?.simulacao === false || Boolean(window.producaoMQTT?.bloqueada());
+  producaoFisicaPendentePersistida = pendenciaFisica;
+  if (pendenciaFisica && producaoSalvaFirebase?.fila?.length) {
+    // O snapshot físico é a referência de leitura desta produção; não sobrescreve localStorage.
+    filaSalva = JSON.stringify(producaoSalvaFirebase.fila);
+    modoIntegracaoMaquina = ModoIntegracaoMaquina.CLP_CONFIRMADO;
+    if (chkMaquinaReal) chkMaquinaReal.checked = true;
   }
 
   /*
@@ -3731,6 +4244,38 @@ a fila salva no Firebase.
       filaProducao = [];
     }
 
+    if (pendenciaFisica) {
+      const indiceSnapshot = Number(producaoSalvaFirebase?.indiceFila);
+      indiceFila = Number.isSafeInteger(indiceSnapshot) && indiceSnapshot >= 0
+        ? Math.min(indiceSnapshot, Math.max(0, filaProducao.length - 1))
+        : 0;
+      repeticaoAtual = 0;
+      executandoPrograma = false;
+      programaPausado = false;
+      girando = false;
+      estadoExecucao = EstadoExecucao.PARADA;
+      aguardandoTrocaPeca = false;
+      const item = filaProducao[indiceFila];
+      if (item?.programa && !(await carregarProgramaFila(item.programa, false))) {
+        informarEnvioFilaMqtt("Produção física pendente; não foi possível carregar o programa para visualização.");
+        esconderBotaoIniciarCiclo();
+        document.getElementById("btnPlayPause").disabled = true;
+        return;
+      }
+      const nome = item?.nome || item?.programa || "Programa não identificado";
+      const quantidade = Number(item?.quantidade) || Number(producaoSalvaFirebase?.quantidadeTotal) || 0;
+      document.getElementById("programaAtualExecucao").innerText =
+        `Plano físico pendente · ${nome} · ${indiceFila + 1}/${filaProducao.length} · ${quantidade} peça(s)`;
+      document.getElementById("execucaoAtual").innerText =
+        `Estado não reconciliado · ${Number(producaoSalvaFirebase?.quantidadeConcluida) || 0}/${quantidade} peças · ${pontos.length} pontos`;
+      document.getElementById("statusPrograma").innerText =
+        "Plano carregado para consulta. Consulte o Node-RED; nenhuma execução foi iniciada.";
+      informarEnvioFilaMqtt("Produção física pendente: consulte o estado do Node-RED.");
+      esconderBotaoIniciarCiclo();
+      document.getElementById("btnPlayPause").disabled = true;
+      return;
+    }
+
     /*
     =============================
     BUSCAR PRODUÇÃO ATUAL
@@ -3762,6 +4307,7 @@ a fila salva no Firebase.
     */
 
     if (existeProducaoPendente) {
+      producaoId = producaoRecuperada.producaoId || crypto.randomUUID();
       indiceFila = Number(producaoRecuperada.indiceFila) || 0;
 
       repeticaoAtual = Number(producaoRecuperada.quantidadeConcluida) || 0;
@@ -3937,7 +4483,12 @@ a fila salva no Firebase.
         apenas carrega.
         */
 
-        await carregarProgramaFila(itemParaCarregar.programa, false);
+        if (!(await carregarProgramaFila(itemParaCarregar.programa, false))) {
+          estadoExecucao = EstadoExecucao.PARADA;
+          esconderBotaoIniciarCiclo();
+          document.getElementById("btnPlayPause").disabled = true;
+          return;
+        }
 
         /*
         =============================
@@ -3982,7 +4533,7 @@ NOVA PRODUÇÃO
           const execucaoAtual = document.getElementById("execucaoAtual");
 
           if (execucaoAtual) {
-            execucaoAtual.innerText = "Aguardando autorização do operador";
+            execucaoAtual.innerText = "Pronto para iniciar pelo botão ou gesto START";
           }
 
           const botaoPausa = document.getElementById("btnPlayPause");
@@ -4134,7 +4685,7 @@ NOVA PRODUÇÃO
 
           if (execucaoAtual) {
             if (estadoExecucao === EstadoExecucao.AGUARDANDO_INICIO) {
-              execucaoAtual.innerText = "Aguardando autorização do operador";
+              execucaoAtual.innerText = "Pronto para iniciar pelo botão ou gesto START";
             } else if (estadoExecucao === EstadoExecucao.AGUARDANDO_PECA) {
               execucaoAtual.innerText = `${repeticaoAtual}/${
                 producaoRecuperada.quantidadeTotal || 0
@@ -4452,6 +5003,11 @@ document
   ?.addEventListener("click", confirmarPecaPosicionada);
 
 async function concluirProgramaAtual() {
+  if (conclusaoPecaPendente || !executandoPrograma || indicePontoAtual < pontos.length) return;
+  conclusaoPecaPendente = true;
+  try { await concluirPecaAtual(); } finally { conclusaoPecaPendente = false; }
+}
+async function concluirPecaAtual() {
   /*
   =============================
   FINALIZAR MOVIMENTO DA PEÇA
@@ -4515,6 +5071,8 @@ troca da peça.
   */
 
   repeticaoAtual++;
+  indicePontoAtual = 0;
+  await gravacaoProducao.catch(() => {});
 
   const quantidadeTotal = Number(itemAtual.quantidade) || 0;
 
@@ -4529,7 +5087,7 @@ troca da peça.
   =============================
   */
 
-  if (window.salvarProducaoAtualFirebase) {
+  if (window.salvarProducaoAtualFirebase && !simulacaoVirtualIsolada) {
     try {
       await window.salvarProducaoAtualFirebase({
         programa: itemAtual.programa,
@@ -4714,61 +5272,8 @@ window.addEventListener("pagehide", () => {
 
 window.addEventListener(
   "soldatech:gesto-visao",
-  async (event) => {
-
-    const gesto = event.detail?.gesto;
-
-    console.log(
-      "👋 [VISÃO] Processando gesto:",
-      gesto,
-      "| Estado:",
-      estadoExecucao
-    );
-
-    if (gesto === "START") {
-
-      if (
-        estadoExecucao !==
-        EstadoExecucao.AGUARDANDO_INICIO
-      ) {
-        console.warn(
-          "⚠️ START por gesto ignorado. Estado atual:",
-          estadoExecucao
-        );
-
-        return;
-      }
-
-      console.log(
-        "▶️ [VISÃO] Iniciando ciclo por gesto."
-      );
-
-      await confirmarInicioCiclo();
-
-      return;
-    }
-
-    if (gesto === "PAUSA") {
-
-      if (
-        estadoExecucao !==
-        EstadoExecucao.EXECUTANDO
-      ) {
-        console.warn(
-          "⚠️ PAUSA por gesto ignorada. Estado atual:",
-          estadoExecucao
-        );
-
-        return;
-      }
-
-      console.log(
-        "⏸️ [VISÃO] Pausando ciclo por gesto."
-      );
-
-      await alternarMovimento();
-    }
-  }
+  event => { void window.controlarSimulacaoPorGesto(event.detail?.gesto)
+    .catch(erro => informarEnvioFilaMqtt(erro.message)); }
 );
 
 /*

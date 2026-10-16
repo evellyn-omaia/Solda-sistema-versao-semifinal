@@ -1,0 +1,12 @@
+{
+  "habilitado": false,
+  "ip": null,
+  "porta": 502,
+  "unitId": null,
+  "timeoutMs": 2000,
+  "coils": { "jogCima": null, "jogBaixo": null, "mesaStart": null, "soldaOn": null },
+  "holdingRegisters": { "zAlvoDecimm": null, "mesaAlvoDecigraus": null },
+  "inputRegisters": { "zAtualDecimm": null, "mesaAtualDecigraus": null },
+  "discreteInputs": { "executando": null, "mesaPronta": null, "soldaAtiva": null, "emergenciaAtiva": null, "movimentoConcluido": null },
+  "observacao": "Documento de levantamento. Nao e carregado pelo runtime. Confirmar enderecos, funcoes Modbus, tipos, escala, intertravamentos e homologacao antes de implementar adaptador fisico."
+}

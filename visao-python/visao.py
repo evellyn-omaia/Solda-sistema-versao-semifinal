@@ -5,6 +5,8 @@ import os
 import json
 import time
 import threading
+import atexit
+from controle_gestos import ControleGestos
 
 
 # ==========================================
@@ -17,36 +19,17 @@ CAMERA_INDEX = 0
 MQTT_TOPIC = "soldatech/visao/gesto"
 
 # ==========================================
-# CONFIGURAÇÃO DO HIVEMQ
+# CONFIGURAÇÃO DO BROKER MQTT
 # ==========================================
 
-MQTT_HOST = os.getenv(
-    "MQTT_HOST",
-    "0c8e76fe2d694a2e963905f30e8ab299.s1.eu.hivemq.cloud"
-)
-
-MQTT_PORT = int(
-    os.getenv("MQTT_PORT", "8883")
-)
-
+MQTT_HOST = os.getenv("MQTT_HOST", "localhost")
+MQTT_PORT = int(os.getenv("MQTT_PORT", "1883"))
+MQTT_TLS = os.getenv("MQTT_TLS", "true" if MQTT_PORT == 8883 else "false").lower() == "true"
 MQTT_USER = os.getenv("MQTT_USER")
+MQTT_PASS = os.getenv("MQTT_PASS") or os.getenv("MQTT_PASSWORD")
 
-MQTT_PASSWORD = os.getenv("MQTT_PASSWORD")
-
-
-# ==========================================
-# VALIDAR CREDENCIAIS
-# ==========================================
-
-if not MQTT_USER:
-    raise RuntimeError(
-        "MQTT_USER não foi definido no PowerShell."
-    )
-
-if not MQTT_PASSWORD:
-    raise RuntimeError(
-        "MQTT_PASSWORD não foi definido no PowerShell."
-    )
+if bool(MQTT_USER) != bool(MQTT_PASS):
+    raise RuntimeError("Defina MQTT_USER e MQTT_PASS juntos, ou deixe ambos ausentes.")
 
 
 # ==========================================
@@ -54,6 +37,10 @@ if not MQTT_PASSWORD:
 # ==========================================
 
 mqtt_conectado = threading.Event()
+mqtt_geracao = 0
+cap = None
+hands = None
+recursos_encerrados = False
 
 
 # ==========================================
@@ -62,25 +49,48 @@ mqtt_conectado = threading.Event()
 
 mqtt_client = mqtt.Client(
     mqtt.CallbackAPIVersion.VERSION2,
-    client_id="SoldaTouch-Visao"
+    client_id=f"soldatech-visao-{os.getpid()}-{time.time_ns()}"
 )
+
+
+def encerrar_recursos():
+    global recursos_encerrados
+    if recursos_encerrados:
+        return
+    recursos_encerrados = True
+    # Uma falha ao liberar um recurso não impede a liberação dos demais.
+    for liberar in (
+        lambda: cap.release() if cap is not None else None,
+        cv2.destroyAllWindows,
+        lambda: hands.close() if hands is not None else None,
+        mqtt_client.disconnect,
+        mqtt_client.loop_stop,
+    ):
+        try:
+            liberar()
+        except Exception as erro:
+            print(f"Erro ao encerrar recurso: {type(erro).__name__}")
+
+
+atexit.register(encerrar_recursos)
 
 
 # ==========================================
 # USUÁRIO E SENHA
 # ==========================================
 
-mqtt_client.username_pw_set(
-    MQTT_USER,
-    MQTT_PASSWORD
-)
+if MQTT_USER:
+    mqtt_client.username_pw_set(MQTT_USER, MQTT_PASS)
+
+mqtt_client.reconnect_delay_set(min_delay=1, max_delay=30)
 
 
 # ==========================================
 # TLS
 # ==========================================
 
-mqtt_client.tls_set()
+if MQTT_TLS:
+    mqtt_client.tls_set()
 
 
 # ==========================================
@@ -94,6 +104,7 @@ def ao_conectar(
     reason_code,
     properties
 ):
+    global mqtt_geracao
 
     print(
         f"[MQTT] Resultado da conexão: {reason_code}"
@@ -101,8 +112,9 @@ def ao_conectar(
 
     if reason_code == 0:
 
-        print("[MQTT] CONECTADO AO HIVEMQ!")
+        print("[MQTT] CONECTADO AO BROKER!")
 
+        mqtt_geracao += 1
         mqtt_conectado.set()
 
     else:
@@ -128,23 +140,25 @@ def ao_desconectar(
     reason_code,
     properties
 ):
+    global mqtt_geracao
 
     print(
-        f"[MQTT] Desconectado do HiveMQ. Código: {reason_code}"
+        f"[MQTT] Desconectado do broker. Código: {reason_code}"
     )
 
     mqtt_conectado.clear()
+    mqtt_geracao += 1
 
 
 mqtt_client.on_disconnect = ao_desconectar
 
 
 # ==========================================
-# CONECTAR AO HIVEMQ
+# CONECTAR AO BROKER
 # ==========================================
 
 print("======================================")
-print("CONECTANDO AO HIVEMQ")
+print("CONECTANDO AO BROKER MQTT")
 print("======================================")
 
 print(
@@ -194,7 +208,7 @@ if not mqtt_conectado.wait(timeout=15):
     mqtt_client.loop_stop()
 
     raise RuntimeError(
-        "Não foi possível conectar ao HiveMQ em 15 segundos."
+        "Não foi possível conectar ao broker em 15 segundos."
     )
 
 
@@ -206,7 +220,7 @@ print()
 # ENVIO DO GESTO
 # ==========================================
 
-ultimo_envio = 0
+ultimo_envio = float("-inf")
 
 COOLDOWN = 2.0
 
@@ -231,11 +245,11 @@ def enviar_gesto(gesto):
     # Cooldown
     # --------------------------------------
 
-    agora = time.time()
+    agora = time.monotonic()
 
     if agora - ultimo_envio < COOLDOWN:
 
-        return False
+        return None  # Adiado, não consumido nem considerado falha de envio.
 
     # --------------------------------------
     # Criar mensagem
@@ -295,6 +309,9 @@ def enviar_gesto(gesto):
             f"[MQTT] Erro aguardando publicação: {erro}"
         )
 
+        return False
+
+    if not resultado.is_published():
         return False
 
     # --------------------------------------
@@ -430,7 +447,7 @@ def classificar_gesto(hand_landmarks):
 # LOOP PRINCIPAL
 # ==========================================
 
-ultimo_gesto = "NEUTRO"
+controle_gestos = ControleGestos(enviar_gesto)
 
 
 while True:
@@ -519,62 +536,11 @@ while True:
     # DETECTAR MUDANÇA DE GESTO
     # ======================================
 
-    if gesto != ultimo_gesto:
-
-
-        # ==================================
-        # PALMA = START
-        # ==================================
-
-        if gesto == "PALMA":
-
-            print(
-                "[VISÃO] PALMA DETECTADA"
-            )
-
-            print(
-                "[AÇÃO] START"
-            )
-
-            enviar_gesto(
-                "START"
-            )
-
-
-        # ==================================
-        # PUNHO = PAUSA
-        # ==================================
-
-        elif gesto == "PUNHO":
-
-            print(
-                "[VISÃO] PUNHO DETECTADO"
-            )
-
-            print(
-                "[AÇÃO] PAUSA"
-            )
-
-            enviar_gesto(
-                "PAUSA"
-            )
-
-
-        # ==================================
-        # NEUTRO
-        # ==================================
-
-        elif gesto == "NEUTRO":
-
-            print(
-                "[VISÃO] NEUTRO"
-            )
-
-
-        # Guardar estado
-
-        ultimo_gesto = gesto
-
+    controle_gestos.atualizar(
+        gesto,
+        conectado=mqtt_conectado.is_set(),
+        geracao=mqtt_geracao,
+    )
 
     # ======================================
     # TEXTO NA CÂMERA
@@ -630,14 +596,6 @@ print()
 print("Encerrando...")
 
 
-cap.release()
-
-cv2.destroyAllWindows()
-
-hands.close()
-
-mqtt_client.loop_stop()
-
-mqtt_client.disconnect()
+encerrar_recursos()
 
 print("Programa encerrado.")

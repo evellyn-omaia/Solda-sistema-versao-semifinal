@@ -25,10 +25,10 @@ function atualizarSemanticaBotaoMenu() {
     return;
   }
 
-  const statusAberto = !ladoDireito?.classList.contains("status-fechado");
-  btnMenu.setAttribute("aria-controls", "statusMaquina");
+  const statusAberto = !document.body.classList.contains("menu-recolhido");
+  btnMenu.setAttribute("aria-controls", "menuPrincipal");
   btnMenu.setAttribute("aria-expanded", String(statusAberto));
-  btnMenu.setAttribute("aria-label", "Alternar painel de status da máquina");
+  btnMenu.setAttribute("aria-label", "Abrir ou fechar menu principal");
 }
 
 function definirMenuMobileAberto(aberto) {
@@ -54,9 +54,8 @@ btnMenu.addEventListener("click", () => {
     return;
   }
 
-  ladoDireito.classList.toggle("status-fechado");
-
-  layout.classList.toggle("layout-expandido");
+  document.body.classList.toggle("menu-recolhido");
+  menuPrincipal.inert = document.body.classList.contains("menu-recolhido");
 
   atualizarSemanticaBotaoMenu();
 

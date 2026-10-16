@@ -586,3 +586,29 @@ canvas{
     display:none;
   }
 }
+
+/* Controles locais da demonstracao integrada. */
+.painel-conexao { max-height: calc(100vh - 32px); overflow-y: auto; pointer-events: auto; }
+.simulacao-integrada { border-top: 1px solid #475569; margin-top: 12px; padding-top: 8px; font-size: 12px; }
+.simulacao-integrada button { padding: 8px; margin: 3px 0; cursor: pointer; }
+.simulacao-integrada button:disabled { opacity: .45; cursor: default; }
+.simulacao-integrada video { width: 100%; max-height: 150px; background: #0f172a; }
+.simulacao-acoes { display: grid; gap: 4px; }
+
+/* Separate the viewport from controls: no panel covers the model. */
+body[data-page="novo-programa"] { display:grid; grid-template-columns:280px minmax(0,1fr) 250px; grid-template-rows:minmax(0,1fr); gap:10px; padding:10px; }
+body[data-page="novo-programa"] > canvas { position:relative; grid-column:2; grid-row:1; width:100%!important; height:100%!important; min-width:0; min-height:0; }
+body[data-page="novo-programa"] > .painel { position:relative; inset:auto; grid-column:1; grid-row:1; width:100%; max-width:none; height:100%; max-height:none; padding:14px; }
+body[data-page="novo-programa"] > .painel-conexao { position:relative; inset:auto; grid-column:3; grid-row:1; width:100%; max-width:none; max-height:100%; }
+@media(max-width:900px) {
+ html:has(body[data-page="novo-programa"]) { overflow:auto; height:auto; }
+ body[data-page="novo-programa"] { height:auto; overflow:visible; grid-template-columns:minmax(0,1fr); grid-template-rows:42dvh auto auto; }
+ body[data-page="novo-programa"] > canvas { grid-column:1; grid-row:1; }
+ body[data-page="novo-programa"] > .painel { grid-column:1; grid-row:2; height:auto; overflow:visible; }
+ body[data-page="novo-programa"] > .painel-conexao { grid-column:1; grid-row:3; height:auto; max-height:none; }
+}
+
+@media (pointer: coarse) {
+  .painel button, .painel-conexao button { min-height: 44px; touch-action: manipulation; }
+}
+.painel-conexao p { overflow-wrap: anywhere; }

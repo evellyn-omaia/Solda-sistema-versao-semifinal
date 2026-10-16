@@ -2,24 +2,21 @@
   "rules": {
     ".read": false,
     ".write": false,
-
     "usuarios": {
       ".read": "auth != null && root.child('usuarios').child(auth.uid).child('tipoUsuario').val() === 'admin' && query.orderByChild === 'empresaId' && query.equalTo === root.child('usuarios').child(auth.uid).child('empresaId').val()",
-
-      ".indexOn": ["empresaId"],
-
+      ".indexOn": [
+        "empresaId"
+      ],
       "$uid": {
         ".read": "auth != null && (auth.uid === $uid || (root.child('usuarios').child(auth.uid).child('tipoUsuario').val() === 'admin' && data.child('empresaId').val() === root.child('usuarios').child(auth.uid).child('empresaId').val()))",
-
-        ".write": "auth != null && ((auth.uid === $uid && (!data.exists() || (newData.child('empresaId').val() === data.child('empresaId').val() && newData.child('tipoUsuario').val() === data.child('tipoUsuario').val()))) || (root.child('usuarios').child(auth.uid).child('tipoUsuario').val() === 'admin' && newData.child('empresaId').val() === root.child('usuarios').child(auth.uid).child('empresaId').val() && newData.child('tipoUsuario').val() === 'operador'))"
+        ".write": "auth != null && ((auth.uid === $uid && ((!data.exists() && newData.child('empresaId').val() === 'empresa_' + auth.uid && newData.child('tipoUsuario').val() === 'admin' && newData.parent().parent().child('empresas').child('empresa_' + auth.uid).child('adminUid').val() === auth.uid) || (data.exists() && newData.child('empresaId').val() === data.child('empresaId').val() && newData.child('tipoUsuario').val() === data.child('tipoUsuario').val()))) || (root.child('usuarios').child(auth.uid).child('tipoUsuario').val() === 'admin' && newData.child('empresaId').val() === root.child('usuarios').child(auth.uid).child('empresaId').val() && newData.child('tipoUsuario').val() === 'operador' && (!data.exists() || (data.child('empresaId').val() === newData.child('empresaId').val() && data.child('tipoUsuario').val() === 'operador'))))"
       }
     },
-
     "empresas": {
       "$empresaId": {
         ".read": "auth != null && root.child('usuarios').child(auth.uid).child('empresaId').val() === $empresaId",
-
-        ".write": "auth != null && (root.child('usuarios').child(auth.uid).child('empresaId').val() === $empresaId || (!data.exists() && newData.child('adminUid').val() === auth.uid))"
+        ".write": "auth != null && newData.exists() && ((data.exists() && root.child('usuarios').child(auth.uid).child('empresaId').val() === $empresaId && newData.child('adminUid').val() === data.child('adminUid').val()) || (!data.exists() && $empresaId === 'empresa_' + auth.uid && newData.child('adminUid').val() === auth.uid))",
+        ".validate": "newData.hasChild('adminUid') && (!data.exists() || newData.child('adminUid').val() === data.child('adminUid').val())"
       }
     }
   }

@@ -48,6 +48,8 @@
 >
   INICIAR CICLO
 </button>
+      <button id="btnConsultarProducao" type="button">Consultar produção no Node-RED</button>
+      <button id="btnCancelarProducaoMqtt" type="button">Cancelar planejamento / produção no Node-RED</button>
       <button id="btnPlayPause" onclick="alternarMovimento()" disabled>
         Pausar execução
       </button>
@@ -328,6 +330,11 @@ MODO DE REPRODUÇÃO (SEQUENCIAL/SINGULAR)
       </div>
 
       <div class="painel-conexao__linha">
+        <span>Node-RED</span>
+        <strong id="statusNodeRed" class="conexao-status conexao-status--offline">SEM CONFIRMAÇÃO</strong>
+      </div>
+
+      <div class="painel-conexao__linha">
         <span>CLP</span>
         <strong id="statusClp" class="conexao-status conexao-status--indisponivel">
           INDISPONÍVEL
@@ -338,6 +345,8 @@ MODO DE REPRODUÇÃO (SEQUENCIAL/SINGULAR)
         Última resposta: --
       </p>
 
+      <button id="btnEnviarFilaMqtt" type="button" style="display:block;width:100%;margin:10px 0;padding:9px;background:#176cc4;color:white;border:0;border-radius:8px;cursor:pointer">Enviar fila ao Node-RED</button>
+      <small id="statusEnvioFilaMqtt" style="display:block;margin-bottom:8px;color:#cbd5e1" aria-live="polite"></small>
       <label class="painel-conexao__toggle" for="chkMaquinaReal">
         <input type="checkbox" id="chkMaquinaReal" />
         Controlar a máquina real (CLP)
@@ -352,11 +361,18 @@ MODO DE REPRODUÇÃO (SEQUENCIAL/SINGULAR)
 
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/DRACOLoader.js"></script>
 
+    <script src="./firebase-loader.js"></script>
     <script type="module" src="./firebase-programas.js"></script>
   
-    <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+    <script src="https://unpkg.com/mqtt@5.16.0/dist/mqtt.min.js"></script>
+    <script src="mqtt-config.local.js"></script>
+    <script src="mqtt-config.js"></script>
 <script src="mqtt-maquina.js"></script>
 
+    <script type="module" src="./mqtt-autenticacao.mjs"></script>
+    <script src="./producao-mqtt.js"></script>
     <script defer src="./novoprograma.js"></script>
-  </body>
+    <script type="module" src="./simulacao-integrada.mjs"></script>
+  <script src="../shared/navigation.js" defer></script>
+</body>
 </html>
